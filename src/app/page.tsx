@@ -8,7 +8,6 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
-  Info,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
@@ -261,17 +260,6 @@ export default function HomePage() {
               )}
             </button>
           </form>
-
-          {/* Info Petunjuk Akun Database NeonDB */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex items-start gap-2 text-[11px] text-slate-400">
-            <Info className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
-            <div>
-              <span>Akun default seeder NeonDB: </span>
-              <span className="font-mono font-semibold text-slate-600">
-                {role === "siswa" ? "210401889 / siswa123 (Token: MAT-8492)" : "admin / admin123"}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </main>
