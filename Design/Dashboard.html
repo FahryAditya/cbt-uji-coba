@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CBT Admin Dashboard & Live Proctoring</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* ==========================================================================
+       1. EXTENDED DESIGN SYSTEM & HARMONIC COLOR COMBINATIONS
+       ========================================================================== */
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Primary Sky / Cobalt (Main Navigation & Action) */
+      --primary-500: #259CFA;
+      --primary-600: #0284C7;
+      --primary-100: #E0F2FE;
+      --primary-50: #F0F9FF;
+
+      /* Accent Rose / Coral (Urgency, Timer & Danger) */
+      --rose-500: #E11D48;
+      --rose-600: #BE123C;
+      --rose-100: #FFE4E6;
+      --rose-50: #FFF1F2;
+
+      /* Accent Emerald (Verified, Online & Completed) */
+      --emerald-500: #059669;
+      --emerald-600: #047857;
+      --emerald-100: #D1FAE5;
+      --emerald-50: #ECFDF5;
+
+      /* Accent Amber / Gold (Warning, Flagged & Tab Switches) */
+      --amber-500: #D97706;
+      --amber-600: #B45309;
+      --amber-100: #FEF3C7;
+      --amber-50: #FFFBEB;
+
+      /* Accent Indigo / Violet (Bank Soal & Analytics) */
+      --indigo-500: #6366F1;
+      --indigo-600: #4F46E5;
+      --indigo-100: #EEF2FF;
+      --indigo-50: #F5F7FF;
+
+      /* Base Surfaces */
+      --bg-canvas: #F8FAFC;
+      --bg-surface: #FFFFFF;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --border-subtle: #F1F5F9;
+
+      /* Motion */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      overflow-x: hidden;
+    }
+
+    /* Ambient card elevation matching student UI */
+    .soft-card {
+      background: var(--bg-surface);
+      border-radius: 18px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.04);
+      transition: transform 240ms var(--ease-spring), box-shadow 240ms ease;
+    }
+
+    .soft-card:hover {
+      box-shadow: 0 10px 28px -6px rgba(15, 23, 42, 0.07);
+    }
+
+    /* Tabular numbers for clocks, tokens, and counts */
+    .tabular-digits {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+
+    /* Pulse animation for live online indicator */
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      50% { transform: scale(1.4); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+    .pulse-dot {
+      animation: pulseRing 2s infinite ease-in-out;
+    }
+
+    /* Pop-out effect like Answer B in student UI */
+    .kpi-interactive:hover {
+      transform: translateY(-3px) scale(1.015);
+    }
+
+    /* Math notation style */
+    .math-sqrt {
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .math-sqrt .radicand {
+      border-top: 1.8px solid currentColor;
+      padding-top: 1px;
+      margin-left: 1px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex antialiased">
+
+  <!-- ========================================================================
+       1. COLLAPSIBLE MODERN SIDEBAR
+       ======================================================================== -->
+  <aside id="sidebar" class="w-64 bg-white border-r border-slate-100 flex flex-col justify-between transition-all duration-300 z-30 shrink-0 sticky top-0 h-screen">
+    <!-- Brand Logo -->
+    <div>
+      <div class="h-20 flex items-center px-6 gap-3 border-b border-slate-100">
+        <!-- Logo Hexagon S -->
+        <div class="w-10 h-10 flex-shrink-0 cursor-pointer transition-transform hover:scale-105">
+          <svg viewBox="0 0 38 42" fill="none" class="w-full h-full drop-shadow-sm">
+            <path d="M16.5 1.44338C18.047 0.550209 19.953 0.550209 21.5 1.44338L34.7305 9.08198C36.2775 9.97515 37.2305 11.6258 37.2305 13.4121V28.6893C37.2305 30.4756 36.2775 32.1262 34.7305 33.0194L21.5 40.658C19.953 41.5512 18.047 41.5512 16.5 40.658L3.26953 33.0194C1.72253 32.1262 0.769531 30.4756 0.769531 28.6893V13.4121C0.769531 11.6258 1.72253 9.97515 3.26953 9.08198L16.5 1.44338Z" fill="#259CFA"/>
+            <text x="19" y="27" text-anchor="middle" fill="#FFFFFF" font-weight="800" font-size="18">S</text>
+          </svg>
+        </div>
+        <div class="overflow-hidden whitespace-nowrap">
+          <div class="font-extrabold text-slate-800 text-base leading-tight tracking-tight">SmartExam<span class="text-sky-500">.</span></div>
+          <div class="text-[11px] font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full inline-block mt-0.5">Admin CBT Portal</div>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-4 space-y-1.5" id="navContainer">
+        <!-- Live Proctoring (Active Item) -->
+        <button onclick="switchTab('proctoring')" id="nav-proctoring" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold text-sm transition-all bg-sky-50 text-sky-600 shadow-xs">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <span>Live Proctoring</span>
+          </div>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+        </button>
+
+        <!-- Bank Soal -->
+        <button onclick="switchTab('bank-soal')" id="nav-bank-soal" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+          <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+          <span>Bank Soal MTK</span>
+          <span class="ml-auto text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 font-bold rounded-full">13</span>
+        </button>
+
+        <!-- Jadwal & Sesi -->
+        <button onclick="switchTab('jadwal')" id="nav-jadwal" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span>Jadwal & Sesi</span>
+        </button>
+
+        <!-- Rekap Nilai -->
+        <button onclick="switchTab('nilai')" id="nav-nilai" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+          <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span>Rekap Nilai</span>
+        </button>
+
+        <!-- Pengaturan Keamanan -->
+        <button onclick="switchTab('settings')" id="nav-settings" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+          <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <span>Keamanan & Kiosk</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom User Status -->
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/70 transition">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+          AD
+        </div>
+        <div class="overflow-hidden">
+          <div class="text-xs font-bold text-slate-800 truncate">Pak Ahmad Dahlan</div>
+          <div class="text-[10px] text-slate-500 font-medium truncate">Pengawas Utama Ruang 04</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       2. WORKSPACE CONTENT AREA
+       ======================================================================== -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- TOP HEADER BAR -->
+    <header class="h-20 bg-white border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between gap-4 sticky top-0 z-20">
+      
+      <!-- Left: Breadcrumb & Title -->
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <span>Ujian Aktif</span>
+            <span>•</span>
+            <span class="text-sky-600 font-bold">Penilaian Akhir Semester Matematika</span>
+          </div>
+          <h1 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            Pusat Pengawasan Langsung (Proctoring)
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span>
+              Sesi Berjalan
+            </span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Right: Token Box, Broadcast Trigger & Global Actions -->
+      <div class="flex items-center gap-3">
+        
+        <!-- Live Token Card (With 1-click Copy & Refresh) -->
+        <div class="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="text-left">
+            <div class="text-[9.5px] uppercase tracking-wider font-extrabold text-slate-400">TOKEN UJIAN</div>
+            <div id="sessionToken" class="font-mono font-extrabold text-sm text-sky-600 tracking-wider">MAT-8924</div>
+          </div>
+          <div class="flex gap-1 ml-1 border-l border-slate-200 pl-2">
+            <button onclick="copyToken()" title="Salin Token" class="p-1 rounded-md text-slate-400 hover:text-sky-600 hover:bg-white transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            <button onclick="regenerateToken()" title="Generate Token Baru" class="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-white transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Broadcast Message Button -->
+        <button onclick="openBroadcastModal()" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition shadow-sm hover:shadow-sky-500/20">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+          </svg>
+          <span class="hidden md:inline">Kirim Pengumuman</span>
+        </button>
+
+        <!-- Quick Emergency Halt / Finish Session -->
+        <button onclick="confirmFinishExam()" class="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Kunci Semua & Selesaikan Ujian">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+        </button>
+      </div>
+
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="flex-1 p-6 sm:p-8 space-y-7">
+
+      <!-- ====================================================================
+           3. FOUR DYNAMIC KPI / METRIC CARDS (HARMONIC MULTI-COLOR)
+           ==================================================================== -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5" aria-label="Ringkasan Status Ujian">
+
+        <!-- KPI 1: Cobalt Sky (Peserta Aktif) -->
+        <div class="soft-card p-5 relative overflow-hidden kpi-interactive border-sky-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-sky-700 uppercase tracking-wider">PESERTA UJIAN</span>
+            <span class="p-2 rounded-xl bg-sky-50 text-sky-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-3xl font-extrabold text-slate-800 tabular-digits" id="kpiActiveStudents">35</span>
+            <span class="text-sm font-semibold text-slate-400">/ 36 Terdaftar</span>
+          </div>
+          <div class="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-600">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>34 Online (1 Terputus)</span>
+          </div>
+        </div>
+
+        <!-- KPI 2: Emerald Green (Rata-rata Progress) -->
+        <div class="soft-card p-5 relative overflow-hidden kpi-interactive border-emerald-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">RATA-RATA PROGRES</span>
+            <span class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-3xl font-extrabold text-slate-800 tabular-digits" id="kpiAvgProgress">68%</span>
+            <span class="text-sm font-semibold text-slate-400">~ 8.8 / 13 Soal</span>
+          </div>
+          <div class="w-full bg-emerald-100/60 h-1.5 rounded-full mt-3.5 overflow-hidden">
+            <div class="bg-emerald-500 h-full rounded-full transition-all duration-700" style="width: 68%;"></div>
+          </div>
+        </div>
+
+        <!-- KPI 3: Amber / Gold (Pelanggaran & Tab Switch) -->
+        <div class="soft-card p-5 relative overflow-hidden kpi-interactive border-amber-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-700 uppercase tracking-wider">PELANGGARAN SISTEM</span>
+            <span class="p-2 rounded-xl bg-amber-50 text-amber-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-3xl font-extrabold text-amber-600 tabular-digits" id="kpiAlertCount">4</span>
+            <span class="text-sm font-semibold text-slate-400">Insiden Terdeteksi</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+            <span class="font-bold">3 Tab-Switch</span> & 1 Kursor keluar Kiosk
+          </div>
+        </div>
+
+        <!-- KPI 4: Rose / Coral (Sisa Waktu Terlama) -->
+        <div class="soft-card p-5 relative overflow-hidden kpi-interactive border-rose-100 bg-rose-50/20">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-rose-600 uppercase tracking-wider">SISA WAKTU MAKS</span>
+            <span class="p-2 rounded-xl bg-rose-100 text-rose-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-3xl font-extrabold text-rose-600 tabular-digits" id="kpiTimer">01:50:21</span>
+          </div>
+          <div class="mt-3 text-xs font-semibold text-slate-500">
+            Selesai otomatis pukul <span class="text-slate-800 font-bold">11:30 WITA</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           4. MAIN PROCTORING CONTROLS & STUDENT MONITORING TABLE
+           ==================================================================== -->
+      <section class="soft-card p-6" id="proctoringSection">
+        
+        <!-- Controls Header: Search, Filter Tabs & Batch Buttons -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          
+          <!-- Search input -->
+          <div class="relative flex-1 max-w-md">
+            <input 
+              type="text" 
+              id="studentSearchInput" 
+              oninput="filterStudents()" 
+              placeholder="Cari nama peserta atau NIS..." 
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition"
+            />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+
+          <!-- Filter Pills (All, Warning, Disconnected, Selesai) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0" id="filterPillsGroup">
+            <button onclick="setFilter('all')" class="filter-pill active px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-white shadow-xs">
+              Semua (35)
+            </button>
+            <button onclick="setFilter('warning')" class="filter-pill px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-amber-50 text-amber-700 hover:bg-amber-100">
+              Perlu Perhatian (3)
+            </button>
+            <button onclick="setFilter('disconnected')" class="filter-pill px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-rose-50 text-rose-700 hover:bg-rose-100">
+              Terputus (1)
+            </button>
+            <button onclick="setFilter('completed')" class="filter-pill px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+              Selesai (2)
+            </button>
+          </div>
+
+        </div>
+
+        <!-- TABLE: LIVE MONITORING -->
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left border-collapse" id="proctoringTable">
+            <thead>
+              <tr class="text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                <th class="py-3 px-3">Nama Peserta / NIS</th>
+                <th class="py-3 px-3">Kelas & Ruang</th>
+                <th class="py-3 px-3">Status Koneksi</th>
+                <th class="py-3 px-3">Progres Soal (13 Soal)</th>
+                <th class="py-3 px-3">Pelanggaran</th>
+                <th class="py-3 px-3">Sisa Waktu</th>
+                <th class="py-3 px-3 text-right">Aksi Cepat Pengawas</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody" class="divide-y divide-slate-100 text-sm">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table Footer / Stats Summary -->
+        <div class="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <div>Menampilkan <span id="showingCount" class="font-bold text-slate-800">8</span> dari 35 siswa aktif di Ruang 04</div>
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Soal No. 7 Aktif
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Ragu-ragu (Flag)
+            </span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           5. SECTION 2: QUICK BANK SOAL PREVIEW (MATCHING STUDENT EXAM Q7)
+           ==================================================================== -->
+      <section class="soft-card p-6" id="bankSoalPreviewSection">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div>
+            <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">Bank Soal MTK — Semester Genap</span>
+            <h2 class="text-base font-bold text-slate-800 mt-1">Pratinjau Butir Soal Terkalibrasi (Soal Nomor 7 Terpilih)</h2>
+          </div>
+          <button onclick="showToast('Membuka Editor Soal Formula KaTeX...')" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition">
+            + Tambah Soal Baru
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5 items-center">
+          
+          <!-- Left: Diagram & Equation -->
+          <div class="lg:col-span-6 p-4 rounded-xl bg-slate-50 border border-slate-200/70">
+            <div class="text-xs font-semibold text-slate-500 mb-2">Tampilan Soal di Layar Siswa:</div>
+            <p class="text-sm font-semibold text-slate-800 mb-3">
+              "Berapa panjang sisi AB dari segitiga di bawah ini?"
+            </p>
+            
+            <!-- Exact Geometry SVG from student interface -->
+            <div class="bg-white rounded-xl p-3 border border-slate-200/80 flex items-center justify-center">
+              <svg width="280" height="170" viewBox="0 0 390 235" fill="none" class="max-w-full">
+                <polygon points="62,195 335,195 253,36" stroke="#22252A" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+                <text x="48" y="213" fill="#22252A" font-weight="700" font-size="14">A</text>
+                <text x="339" y="213" fill="#22252A" font-weight="700" font-size="14">B</text>
+                <text x="249" y="24" fill="#22252A" font-weight="700" font-size="14">C</text>
+                <text x="93" y="185" fill="#22252A" font-weight="600" font-size="13">45°</text>
+                <text x="303" y="185" fill="#22252A" font-weight="600" font-size="13">75°</text>
+                <g transform="translate(291, 90)">
+                  <path d="M0 9.5 L2.5 8 L6 14.5 L10.5 1 L26 1" stroke="#22252A" stroke-width="1.4" fill="none"/>
+                  <text x="11.5" y="14" fill="#22252A" font-weight="600" font-size="13">12</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Right: Distractor & Key Analysis (Item Discrimination) -->
+          <div class="lg:col-span-6 space-y-3">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sebaran Jawaban Siswa Saat Ini:</div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center">A</span>
+                  <span>6√2</span>
+                </div>
+                <span class="text-slate-500 font-semibold">12% (4 Siswa)</span>
+              </div>
+
+              <!-- Correct answer B highlighted -->
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center">B</span>
+                  <span>3√2 (KUNCI JAWABAN)</span>
+                </div>
+                <span class="font-extrabold text-emerald-700">74% (26 Siswa)</span>
+              </div>
+
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center">C</span>
+                  <span>12√2</span>
+                </div>
+                <span class="text-slate-500 font-semibold">8% (3 Siswa)</span>
+              </div>
+
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center">D</span>
+                  <span>3</span>
+                </div>
+                <span class="text-slate-500 font-semibold">6% (2 Siswa)</span>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-slate-500 italic mt-2">
+              Daya Pembeda: <strong>0.82 (Sangat Baik)</strong> • Tingkat Kesukaran: <strong>Sedang (P = 0.74)</strong>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ========================================================================
+       6. BROADCAST MODAL
+       ======================================================================== -->
+  <div id="broadcastModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-bold">📢</div>
+          <h3 class="text-base font-bold text-slate-800">Kirim Pengumuman Instan</h3>
+        </div>
+        <button onclick="closeBroadcastModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Target Peserta:</label>
+          <select id="broadcastTarget" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500">
+            <option value="all">Semua Peserta (35 Siswa Online)</option>
+            <option value="ipa1">Khusus Kelas X-IPA 1</option>
+            <option value="ipa2">Khusus Kelas X-IPA 2</option>
+            <option value="warning">Hanya Siswa dengan Peringatan</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Pesan Pop-up di Layar Siswa:</label>
+          <textarea id="broadcastMessage" rows="3" class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 resize-none" placeholder="Contoh: Perhatian, sisa waktu tinggal 15 menit lagi. Periksa kembali jawaban nomor 4 dan 7."></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeBroadcastModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+        <button onclick="sendBroadcast()" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold shadow-sm transition">Kirim Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST FEEDBACK NOTIFICATION -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 pointer-events-none opacity-0 translate-y-3 transition-all duration-300 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3">
+    <div id="toastIcon" class="w-2.5 h-2.5 rounded-full bg-sky-400"></div>
+    <span id="toastMsg">Tindakan berhasil dieksekusi</span>
+  </div>
+
+  <!-- ========================================================================
+       7. JAVASCRIPT CONTROLLERS & DATA LOGIC
+       ======================================================================== -->
+  <script>
+    // Mock Data Siswa yang sedang ujian matematika
+    const studentsData = [
+      { id: "S01", name: "Budi Santoso", nis: "2024101", class: "X-IPA 1", status: "online", progress: 10, totalQ: 13, currentQ: 7, violations: 0, timeLeft: "01:50:21", flagged: 1 },
+      { id: "S02", name: "Amanda Putri", nis: "2024102", class: "X-IPA 1", status: "online", progress: 12, totalQ: 13, currentQ: 13, violations: 0, timeLeft: "01:34:10", flagged: 0 },
+      { id: "S03", name: "Dimas Anggara", nis: "2024103", class: "X-IPA 2", status: "warning", progress: 7, totalQ: 13, currentQ: 8, violations: 2, timeLeft: "01:45:00", flagged: 2 },
+      { id: "S04", name: "Siti Rahmawati", nis: "2024104", class: "X-IPA 1", status: "online", progress: 9, totalQ: 13, currentQ: 10, violations: 0, timeLeft: "01:48:15", flagged: 1 },
+      { id: "S05", name: "Rian Hidayat", nis: "2024105", class: "X-IPA 2", status: "disconnected", progress: 5, totalQ: 13, currentQ: 6, violations: 1, timeLeft: "01:51:00", flagged: 0 },
+      { id: "S06", name: "Zahra Aulia", nis: "2024106", class: "X-IPA 1", status: "warning", progress: 8, totalQ: 13, currentQ: 9, violations: 1, timeLeft: "01:40:22", flagged: 1 },
+      { id: "S07", name: "Fajar Prasetyo", nis: "2024107", class: "X-IPA 2", status: "completed", progress: 13, totalQ: 13, currentQ: 13, violations: 0, timeLeft: "00:00:00", flagged: 0 },
+      { id: "S08", name: "Nabila Syakieb", nis: "2024108", class: "X-IPA 2", status: "completed", progress: 13, totalQ: 13, currentQ: 13, violations: 0, timeLeft: "00:00:00", flagged: 0 }
+    ];
+
+    let currentFilter = 'all';
+    let searchQuery = '';
+    let globalSeconds = (1 * 3600) + (50 * 60) + 21; // Match student view
+
+    // 1. Render Student Table
+    function renderStudentTable() {
+      const tbody = document.getElementById("studentTableBody");
+      const filtered = studentsData.filter(s => {
+        const matchesFilter = (currentFilter === 'all') ||
+          (currentFilter === 'warning' && (s.violations > 0 || s.status === 'warning')) ||
+          (currentFilter === 'disconnected' && s.status === 'disconnected') ||
+          (currentFilter === 'completed' && s.status === 'completed');
+        
+        const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              s.nis.includes(searchQuery);
+
+        return matchesFilter && matchesSearch;
+      });
+
+      document.getElementById("showingCount").textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-slate-400">
+              Tidak ada data siswa yang cocok dengan filter.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => {
+        // Status Badge Style
+        let statusBadge = '';
+        if (s.status === 'online') {
+          statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online
+          </span>`;
+        } else if (s.status === 'warning') {
+          statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Curiga Tab
+          </span>`;
+        } else if (s.status === 'disconnected') {
+          statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span> Terputus
+          </span>`;
+        } else if (s.status === 'completed') {
+          statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+            ✓ Sudah Kumpul
+          </span>`;
+        }
+
+        // Percentage
+        const progressPct = Math.round((s.progress / s.totalQ) * 100);
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <!-- Nama & Avatar -->
+            <td class="py-3.5 px-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center">
+                  ${s.name.split(' ').map(n=>n[0]).slice(0,2).join('')}
+                </div>
+                <div>
+                  <div class="font-bold text-slate-800">${s.name}</div>
+                  <div class="text-[11px] text-slate-400 font-mono">NIS: ${s.nis}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Kelas -->
+            <td class="py-3.5 px-3">
+              <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">${s.class}</span>
+            </td>
+
+            <!-- Status Koneksi -->
+            <td class="py-3.5 px-3">
+              ${statusBadge}
+            </td>
+
+            <!-- Progres Soal -->
+            <td class="py-3.5 px-3">
+              <div class="w-36">
+                <div class="flex justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                  <span>${s.progress}/${s.totalQ} Soal</span>
+                  <span class="font-bold ${progressPct === 100 ? 'text-emerald-600' : 'text-sky-600'}">${progressPct}%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all ${progressPct === 100 ? 'bg-emerald-500' : 'bg-sky-500'}" style="width: ${progressPct}%;"></div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Pelanggaran -->
+            <td class="py-3.5 px-3">
+              ${s.violations > 0 
+                ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-amber-100 text-amber-800">
+                    ⚠️ ${s.violations}x Keluar
+                   </span>` 
+                : `<span class="text-xs text-slate-400 font-medium">Bersih</span>`}
+            </td>
+
+            <!-- Sisa Waktu -->
+            <td class="py-3.5 px-3 font-mono font-bold text-xs ${s.timeLeft === '00:00:00' ? 'text-slate-400' : 'text-slate-700'}">
+              ${s.timeLeft}
+            </td>
+
+            <!-- Quick Action Buttons -->
+            <td class="py-3.5 px-3 text-right">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="resetStudentLogin('${s.name}')" title="Reset Login (Siswa berganti perangkat)" class="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+                <button onclick="addStudentTime('${s.name}')" title="Tambah Waktu +10 Menit" class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                </button>
+                <button onclick="warnStudent('${s.name}')" title="Kirim Peringatan Langsung" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 2. Filter Tab Controls
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('#filterPillsGroup .filter-pill').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'text-white', 'shadow-xs');
+      });
+      event.target.classList.add('bg-slate-800', 'text-white', 'shadow-xs');
+      renderStudentTable();
+    }
+
+    function filterStudents() {
+      searchQuery = document.getElementById("studentSearchInput").value;
+      renderStudentTable();
+    }
+
+    // 3. Quick Actions
+    function resetStudentLogin(name) {
+      showToast(`Sesi login ${name} berhasil di-reset. Siswa dapat login kembali di perangkat baru.`);
+    }
+
+    function addStudentTime(name) {
+      showToast(`+10 Menit berhasil ditambahkan ke akun ${name}.`);
+    }
+
+    function warnStudent(name) {
+      showToast(`Peringatan pelanggaran layar dikirimkan ke layar ${name}!`, 'rose');
+    }
+
+    function copyToken() {
+      const token = document.getElementById("sessionToken").textContent;
+      const el = document.createElement('textarea');
+      el.value = token;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast(`Token ${token} disalin ke clipboard!`);
+    }
+
+    function regenerateToken() {
+      const randomToken = "MAT-" + Math.floor(1000 + Math.random() * 9000);
+      document.getElementById("sessionToken").textContent = randomToken;
+      showToast(`Token sesi baru diaktifkan: ${randomToken}`);
+    }
+
+    // 4. Modal Broadcast
+    function openBroadcastModal() {
+      const modal = document.getElementById("broadcastModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeBroadcastModal() {
+      const modal = document.getElementById("broadcastModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function sendBroadcast() {
+      const msg = document.getElementById("broadcastMessage").value.trim();
+      if (!msg) {
+        showToast("Tulis pesan pengumuman terlebih dahulu!", "rose");
+        return;
+      }
+      closeBroadcastModal();
+      showToast("Pesan broadcast berhasil dikirim ke seluruh layar siswa!");
+      document.getElementById("broadcastMessage").value = "";
+    }
+
+    function confirmFinishExam() {
+      showToast("Peringatan: Fitur kunci sesi membutuhkan konfirmasi PIN Pengawas.", "amber");
+    }
+
+    // 5. Toast Feedback Helper
+    let toastTimer = null;
+    function showToast(message, color = 'sky') {
+      const toast = document.getElementById("toastNotification");
+      const text = document.getElementById("toastMsg");
+      const icon = document.getElementById("toastIcon");
+
+      text.textContent = message;
+      if (color === 'rose') {
+        icon.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+      } else if (color === 'amber') {
+        icon.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+      } else {
+        icon.className = "w-2.5 h-2.5 rounded-full bg-sky-400";
+      }
+
+      toast.classList.remove("opacity-0", "translate-y-3");
+      toast.classList.add("opacity-100", "translate-y-0");
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-3");
+      }, 2600);
+    }
+
+    // 6. Navigation Switching
+    function switchTab(tabKey) {
+      document.querySelectorAll('#navContainer button').forEach(btn => {
+        btn.className = "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50 transition-all";
+      });
+      const activeBtn = document.getElementById(`nav-${tabKey}`);
+      if (activeBtn) {
+        activeBtn.className = "w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold text-sm transition-all bg-sky-50 text-sky-600 shadow-xs";
+      }
+      showToast(`Beralih ke tab: ${tabKey.toUpperCase().replace('-', ' ')}`);
+    }
+
+    // 7. Timer Countdown
+    function startAdminTimer() {
+      const display = document.getElementById("kpiTimer");
+      setInterval(() => {
+        if (globalSeconds > 0) {
+          globalSeconds--;
+          const hrs = String(Math.floor(globalSeconds / 3600)).padStart(2, "0");
+          const mins = String(Math.floor((globalSeconds % 3600) / 60)).padStart(2, "0");
+          const secs = String(globalSeconds % 60).padStart(2, "0");
+          display.textContent = `${hrs}:${mins}:${secs}`;
+        }
+      }, 1000);
+    }
+
+    function toggleSidebar() {
+      const sb = document.getElementById("sidebar");
+      sb.classList.toggle("-translate-x-full");
+    }
+
+    // Inisialisasi
+    window.onload = function() {
+      renderStudentTable();
+      startAdminTimer();
+    };
+  </script>
+</body>
+</html>

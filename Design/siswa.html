@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Halaman Ujian - Penilaian Akhir Semester Matematika</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN untuk utilitas tata letak responsif -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN TOKENS & CUSTOM PROPERTIES (Dari Hasil Analisis)
+       ========================================================================== */
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+      /* Palette Ekstraksi Screenshot */
+      --bg-ambient-start: #E6F3FF;
+      --bg-ambient-end: #F2F8FF;
+      --bg-window: #FAFCFF;
+      --bg-surface: #FFFFFF;
+
+      --primary-500: #259CFA;
+      --primary-600: #0284C7;
+      --primary-100: #E0F2FE;
+      --primary-50: #F0F9FF;
+
+      --danger-600: #E11D48;
+      --danger-500: #F43F5E;
+      --danger-100: #FFE4E6;
+
+      --warning-400: #FACC15;
+      --slate-800: #1E293B;
+      --slate-700: #334155;
+      --slate-500: #64748B;
+      --slate-400: #94A3B8;
+      --slate-100: #F1F5F9;
+
+      /* Motion & Easing Tokens */
+      --dur-fast: 180ms;
+      --dur-base: 320ms;
+      --dur-slow: 420ms;
+      --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+      --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: radial-gradient(circle at 50% 45%, #D8EEFF 0%, #EBF6FF 55%, #F5FAFF 100%);
+      color: var(--slate-800);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================================================
+       2. MAIN APP SHELL & AMBIENT GLOW
+       ========================================================================== */
+    .exam-window {
+      width: 100%;
+      max-width: 1120px;
+      min-height: 700px;
+      background: var(--bg-window);
+      border-radius: 22px;
+      box-shadow:
+        0 30px 70px -15px rgba(29, 140, 242, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ==========================================================================
+       3. SIDEBAR KIRI
+       ========================================================================== */
+    .sidebar {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--slate-100);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+      z-index: 20;
+    }
+
+    .brand-hexagon {
+      width: 40px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform var(--dur-base) var(--ease-out-back);
+      filter: drop-shadow(0 6px 12px rgba(37, 156, 250, 0.3));
+    }
+
+    .brand-hexagon:hover {
+      transform: scale(1.08) rotate(-4deg);
+    }
+
+    .nav-btn {
+      width: 100%;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: #B0BAC9;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all var(--dur-fast) ease;
+    }
+
+    .nav-btn:hover {
+      color: var(--primary-500);
+      background: var(--primary-50);
+    }
+
+    .nav-btn.is-active {
+      background: var(--primary-100);
+      color: var(--primary-500);
+    }
+
+    .nav-btn.is-active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--primary-500);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .util-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #B0BAC9;
+      transition: all var(--dur-fast) ease;
+    }
+
+    .util-btn:hover {
+      color: var(--slate-700);
+      background: var(--slate-100);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       4. HEADER & STEPPER BAR
+       ========================================================================== */
+    .top-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--slate-100);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    .top-header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--slate-700);
+      margin: 0;
+      text-align: center;
+    }
+
+    /* Pill Nomor Soal */
+    .stepper-card {
+      background: var(--bg-surface);
+      border-radius: 14px;
+      padding: 12px 18px;
+      box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .stepper-card::-webkit-scrollbar {
+      display: none;
+    }
+
+    .num-pill {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: var(--slate-400);
+      transition:
+        transform var(--dur-base) var(--ease-out-back),
+        background-color var(--dur-fast) ease,
+        color var(--dur-fast) ease,
+        box-shadow var(--dur-base) ease;
+    }
+
+    .num-pill:hover:not(.is-current) {
+      transform: translateY(-2px);
+      background: var(--slate-100);
+      color: var(--slate-700);
+    }
+
+    /* Sudah dijawab (1-6 pada gambar) */
+    .num-pill.is-answered {
+      background: var(--primary-100);
+      color: #2B8CE5;
+    }
+
+    /* Soal aktif saat ini (7 pada gambar) */
+    .num-pill.is-current {
+      background: var(--primary-500);
+      color: #FFFFFF;
+      font-weight: 700;
+      box-shadow: 0 6px 14px -2px rgba(37, 156, 250, 0.48);
+      transform: scale(1.06);
+    }
+
+    /* Indikator titik kuning "Tandai Soal" (No. 4 pada gambar) */
+    .flag-dot {
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warning-400);
+      border: 2px solid var(--bg-surface);
+      transform: scale(0);
+      transition: transform var(--dur-base) var(--ease-out-back);
+      pointer-events: none;
+    }
+
+    .num-pill.is-flagged .flag-dot {
+      transform: scale(1);
+    }
+
+    /* Timer Box */
+    .timer-box {
+      background: var(--danger-100);
+      border-radius: 14px;
+      padding: 10px 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 148px;
+      user-select: none;
+      transition: transform var(--dur-fast) ease;
+    }
+
+    .timer-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #F43F5E;
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+
+    .timer-digits {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--danger-600);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+    }
+
+    /* ==========================================================================
+       5. KARTU SOAL & OPSI JAWABAN (DENGAN POP-OUT ANIMATION)
+       ========================================================================== */
+    .question-card {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: 0 4px 24px -6px rgba(15, 23, 42, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 360px;
+    }
+
+    .question-text {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: var(--slate-700);
+      margin: 0 0 16px 0;
+    }
+
+    /* Daftar Kartu Opsi */
+    .options-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      /* Memberi ruang agar pop-out kartu B terlihat menonjol keluar batas kiri & kanan */
+      padding: 2px 0;
+    }
+
+    .option-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 24px;
+      min-height: 76px;
+      background: var(--bg-surface);
+      color: var(--slate-700);
+      border-radius: 14px;
+      border: 1px solid transparent;
+      box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.03);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      will-change: transform, box-shadow, background-color;
+      transition:
+        transform var(--dur-base) var(--ease-out-back),
+        background-color var(--dur-fast) ease,
+        color var(--dur-fast) ease,
+        box-shadow var(--dur-base) var(--ease-out-cubic);
+    }
+
+    .option-card:hover:not(.is-selected) {
+      transform: translateX(-5px);
+      border-color: var(--primary-100);
+      box-shadow: 0 10px 24px -6px rgba(37, 156, 250, 0.12);
+    }
+
+    /* EFEK POP-OUT OPSI B SEPERTI PADA GAMBAR */
+    .option-card.is-selected {
+      z-index: 15;
+      background: var(--primary-500);
+      color: #FFFFFF;
+      border-radius: 14px;
+      /* Melebar keluar ke kiri & kanan persis seperti tangkapan layar */
+      transform: scaleX(1.075) scaleY(1.06) translateX(-10px);
+      box-shadow: 0 18px 36px -8px rgba(37, 156, 250, 0.48);
+    }
+
+    .option-badge {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 9999px;
+      background: var(--primary-100);
+      color: #2B8CE5;
+      font-size: 14px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      transition:
+        transform var(--dur-base) var(--ease-out-back),
+        background-color var(--dur-fast) ease,
+        color var(--dur-fast) ease;
+    }
+
+    .option-card.is-selected .option-badge {
+      background: #FFFFFF;
+      color: var(--primary-500);
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .option-value {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: font-size var(--dur-fast) ease;
+    }
+
+    .option-card.is-selected .option-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* Notasi Akar Matematika yang Rapi */
+    .math-sqrt {
+      display: inline-flex;
+      align-items: baseline;
+      font-family: var(--font-sans);
+    }
+    .math-sqrt .radicand {
+      border-top: 1.8px solid currentColor;
+      padding-top: 1px;
+      margin-left: 1px;
+      line-height: 1.05;
+    }
+
+    /* ==========================================================================
+       6. TOMBOL FOOTER BAWAH
+       ========================================================================== */
+    .btn-action {
+      height: 50px;
+      padding: 0 28px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: none;
+      cursor: pointer;
+      transition:
+        transform var(--dur-fast) var(--ease-out-quart),
+        background-color var(--dur-fast) ease,
+        box-shadow var(--dur-fast) ease,
+        opacity var(--dur-fast) ease;
+    }
+
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: var(--primary-100);
+      color: #1D8CE0;
+      min-width: 195px;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #CBE9FE;
+    }
+
+    .btn-secondary.is-flagged-active {
+      background: #FEF3C7;
+      color: #B45309;
+      box-shadow: 0 0 0 1.5px #F59E0B inset;
+    }
+
+    .btn-primary {
+      background: var(--primary-500);
+      color: #FFFFFF;
+      min-width: 195px;
+      box-shadow: 0 8px 20px -4px rgba(37, 156, 250, 0.42);
+    }
+
+    .btn-primary:hover {
+      background: #158EEF;
+      box-shadow: 0 12px 24px -4px rgba(37, 156, 250, 0.52);
+    }
+
+    .btn-arrow-left,
+    .btn-arrow-right {
+      transition: transform var(--dur-fast) var(--ease-out-quart);
+    }
+
+    .btn-secondary:hover .btn-arrow-left {
+      transform: translateX(-4px);
+    }
+
+    .btn-primary:hover .btn-arrow-right {
+      transform: translateX(4px);
+    }
+
+    /* ==========================================================================
+       7. KEYFRAMES TRANSISI ANTAR SOAL
+       ========================================================================== */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-enter {
+      animation: fadeSlideUp 340ms var(--ease-out-cubic) both;
+    }
+
+    /* Responsif Mobile & Tablet */
+    @media (max-width: 960px) {
+      body {
+        padding: 10px;
+      }
+      .exam-window {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        flex-direction: row;
+        padding: 10px 20px;
+        border-right: none;
+        border-bottom: 1px solid var(--slate-100);
+      }
+      .nav-btn {
+        width: 48px;
+        height: 44px;
+        border-radius: 10px;
+      }
+      .nav-btn.is-active::before {
+        width: 100%;
+        height: 3px;
+        top: auto;
+        bottom: 0;
+      }
+      .option-card.is-selected {
+        transform: scale(1.03);
+      }
+      .btn-secondary, .btn-primary {
+        min-width: auto;
+        flex: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+      .option-card.is-selected {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MAIN APPLICATION WINDOW -->
+  <div class="exam-window" role="application" aria-label="Aplikasi Ujian Matematika">
+
+    <!-- 1. LEFT SIDEBAR -->
+    <aside class="sidebar" aria-label="Menu Utama">
+      <!-- Top Brand Hexagon Logo ('S') -->
+      <div class="brand-hexagon" title="Beranda SmartExam">
+        <svg width="38" height="42" viewBox="0 0 38 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.5 1.44338C18.047 0.550209 19.953 0.550209 21.5 1.44338L34.7305 9.08198C36.2775 9.97515 37.2305 11.6258 37.2305 13.4121V28.6893C37.2305 30.4756 36.2775 32.1262 34.7305 33.0194L21.5 40.658C19.953 41.5512 18.047 41.5512 16.5 40.658L3.26953 33.0194C1.72253 32.1262 0.769531 30.4756 0.769531 28.6893V13.4121C0.769531 11.6258 1.72253 9.97515 3.26953 9.08198L16.5 1.44338Z" fill="#259CFA"/>
+          <text x="19" y="27" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="18">S</text>
+        </svg>
+      </div>
+
+      <!-- Center Navigation Icons -->
+      <nav class="w-full flex md:flex-col items-center justify-center gap-2 my-auto" aria-label="Navigasi Modul">
+        <!-- Active Grid Menu -->
+        <button class="nav-btn is-active" title="Halaman Ujian Aktif" aria-current="page">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+            <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+            <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+            <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+          </svg>
+        </button>
+
+        <!-- Bar Chart Menu -->
+        <button class="nav-btn" title="Statistik Nilai" onclick="showToast('Membuka pratinjau Statistik Nilai (Mode Ujian Aktif)')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </button>
+
+        <!-- Assignment / Document Menu -->
+        <button class="nav-btn" title="Daftar Ujian" onclick="showToast('Navigasi dikunci selama ujian berlangsung')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 5C4 3.89543 4.89543 3 6 3H18C19.1046 3 20 3.89543 20 5V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V5ZM7 8H17V10H7V8ZM7 13H14V15H7V13Z"/>
+          </svg>
+        </button>
+
+        <!-- Pie Chart / History Menu -->
+        <button class="nav-btn" title="Riwayat & Analisis" onclick="showToast('Navigasi dikunci selama ujian berlangsung')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11 2.05V13H21.95C21.45 18.05 17.18 22 12 22C6.48 22 2 17.52 2 12C2 6.82 5.95 2.55 11 2.05ZM13 2.05C17.76 2.5 21.5 6.24 21.95 11H13V2.05Z"/>
+          </svg>
+        </button>
+      </nav>
+
+      <!-- Bottom Utility Icons -->
+      <div class="hidden md:flex flex-col items-center gap-3">
+        <button class="util-btn" title="Informasi & Panduan Pintasan" onclick="toggleShortcutModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V11H13V17ZM13 9H11V7H13V9Z"/>
+          </svg>
+        </button>
+        <button class="util-btn" title="Bantuan Teknis" onclick="toggleShortcutModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 19H11V17H13V19ZM15.07 11.25L14.17 12.17C13.45 12.9 13 13.5 13 15H11V14.5C11 13.4 11.45 12.4 12.17 11.67L13.41 10.41C13.78 10.05 14 9.55 14 9C14 7.9 13.1 7 12 7C10.9 7 10 7.9 10 9H8C8 6.79 9.79 5 12 5C14.21 5 16 6.79 16 9C16 9.88 15.64 10.68 15.07 11.25Z"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 2. MAIN WORKSPACE AREA -->
+    <div class="flex flex-col justify-between min-w-0">
+
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <h1>Halaman Ujian - Penilaian Akhir Semester Matematika</h1>
+      </header>
+
+      <!-- BODY CONTAINER -->
+      <main class="flex-1 flex flex-col justify-between px-5 sm:px-9 py-6 gap-6">
+
+        <!-- SUB-HEADER: NUMBER STEPPER + TIMER -->
+        <section class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4" aria-label="Daftar Nomor Soal dan Waktu">
+          <!-- Question Number Pills (1 - 13) -->
+          <div class="stepper-card flex-1" id="stepperContainer" role="tablist" aria-label="Navigasi Nomor Soal">
+            <!-- Di-render secara dinamis oleh JS -->
+          </div>
+
+          <!-- Countdown Timer -->
+          <div class="timer-box" role="timer" aria-live="off" title="Sisa waktu pengerjaan ujian">
+            <span class="timer-label">WAKTU TERSISA</span>
+            <span class="timer-digits" id="countdownDisplay">01:50:21</span>
+          </div>
+        </section>
+
+        <!-- CENTER SPLIT: QUESTION CARD (LEFT) & OPTIONS STACK (RIGHT) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-7 items-stretch my-auto">
+
+          <!-- Left Column: Question & Geometry Diagram (7 cols on lg) -->
+          <div class="lg:col-span-7 question-card" id="questionPanel">
+            <p class="question-text" id="questionText">
+              Berapa panjang sisi AB dari segitiga di bawah ini?
+            </p>
+
+            <!-- Dynamic Crisp SVG Geometry Container -->
+            <div class="flex-1 flex items-center justify-center py-2" id="diagramContainer">
+              <!-- SVG di-inject oleh JS -->
+            </div>
+          </div>
+
+          <!-- Right Column: Answer Options A, B, C, D (5 cols on lg) -->
+          <div class="lg:col-span-5 flex flex-col justify-center">
+            <div class="options-stack" id="optionsContainer" role="radiogroup" aria-label="Pilihan Jawaban">
+              <!-- Opsi A, B, C, D di-render oleh JS -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- BOTTOM FOOTER BUTTONS -->
+        <footer class="flex flex-wrap items-center justify-between gap-4 pt-2">
+          <!-- Left: Tandai Soal -->
+          <button type="button" id="btnFlag" class="btn-action btn-secondary" onclick="toggleFlagCurrent()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 3V21H7V14H19L17 9L19 4H7V3H5Z"/>
+            </svg>
+            <span id="flagBtnText">Tandai soal</span>
+          </button>
+
+          <!-- Right: Sebelumnya & Selanjutnya -->
+          <div class="flex items-center gap-4 flex-1 sm:flex-initial justify-end">
+            <button type="button" id="btnPrev" class="btn-action btn-secondary" onclick="navigateQuestion(-1)">
+              <span class="btn-arrow-left">←</span>
+              <span>Sebelumnya</span>
+            </button>
+
+            <button type="button" id="btnNext" class="btn-action btn-primary" onclick="navigateQuestion(1)">
+              <span id="nextBtnText">Selanjutnya</span>
+              <span class="btn-arrow-right">→</span>
+            </button>
+          </div>
+        </footer>
+
+      </main>
+    </div>
+
+    <!-- TOAST FEEDBACK RINGAN (Tanpa alert) -->
+    <div id="toastBanner" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 translate-y-3 transition-all duration-300 bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+      <span id="toastText">Status diperbarui</span>
+    </div>
+
+    <!-- MODAL RINGKASAN / BANTUAN PINTASAN KEYBOARD -->
+    <div id="infoModal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-enter">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h2 class="text-base font-bold text-slate-800" id="modalTitle">Panduan & Pintasan Ujian</h2>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center">✕</button>
+        </div>
+        <div id="modalBody" class="py-4 text-sm text-slate-600 space-y-3">
+          <p>Gunakan mouse, layar sentuh, atau pintasan keyboard berikut untuk mengerjakan soal dengan cepat:</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded-lg bg-slate-50 flex items-center justify-between">
+              <span>Pilih Opsi</span>
+              <kbd class="px-2 py-0.5 bg-white rounded border border-slate-200 font-bold text-slate-700">A - D</kbd>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 flex items-center justify-between">
+              <span>Tandai Ragu</span>
+              <kbd class="px-2 py-0.5 bg-white rounded border border-slate-200 font-bold text-slate-700">F</kbd>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 flex items-center justify-between">
+              <span>Soal Sebelumnya</span>
+              <kbd class="px-2 py-0.5 bg-white rounded border border-slate-200 font-bold text-slate-700">←</kbd>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 flex items-center justify-between">
+              <span>Soal Selanjutnya</span>
+              <kbd class="px-2 py-0.5 bg-white rounded border border-slate-200 font-bold text-slate-700">→</kbd>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-sky-50 text-sky-800 text-xs leading-relaxed">
+            <strong>Penyelesaian Soal No. 7:</strong><br/>
+            Jumlah sudut segitiga = $180^\circ \Rightarrow \angle C = 180^\circ - (45^\circ + 75^\circ) = 60^\circ$.<br/>
+            Dengan Aturan Sinus: $\frac{AB}{\sin 60^\circ} = \frac{BC}{\sin 45^\circ} \Rightarrow \frac{AB}{\frac{1}{2}\sqrt{3}} = \frac{\sqrt{12}}{\frac{1}{2}\sqrt{2}} \Rightarrow AB = \frac{\sqrt{36}}{\sqrt{2}} = \frac{6}{\sqrt{2}} = \mathbf{3\sqrt{2}}$ (Jawaban <strong>B</strong>).
+          </div>
+        </div>
+        <div class="pt-2 flex justify-end">
+          <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-[#259CFA] text-white text-xs font-semibold hover:bg-sky-600 transition">Mengerti</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       DATA SOAL UJIAN (1 s/d 13)
+       Soal Nomor 7 diset sebagai default awal agar 100% identik dengan screenshot
+       ========================================================================== */
+    const examQuestions = [
+      {
+        number: 1,
+        question: "Pada segitiga siku-siku ABC di B, diketahui panjang AB = 6 cm dan BC = 8 cm. Berapakah panjang sisi miring AC?",
+        selectedOption: "C",
+        flagged: false,
+        diagramType: "right-triangle",
+        labels: { a: "6", b: "8", c: "?" },
+        options: [
+          { key: "A", html: "7" },
+          { key: "B", html: "9" },
+          { key: "C", html: "10" },
+          { key: "D", html: "12" }
+        ]
+      },
+      {
+        number: 2,
+        question: "Berapakah nilai dari sin 30° + cos 60° pada perhitungan trigonometri dasar?",
+        selectedOption: "B",
+        flagged: false,
+        diagramType: "special-angle",
+        labels: { angle: "30°", hyp: "2", opp: "1" },
+        options: [
+          { key: "A", html: "0" },
+          { key: "B", html: "1" },
+          { key: "C", html: formatSqrt("", "2") },
+          { key: "D", html: formatSqrt("", "3") }
+        ]
+      },
+      {
+        number: 3,
+        question: "Sebuah segitiga sama sisi memiliki panjang sisi 8 cm. Berapakah tinggi segitiga tersebut?",
+        selectedOption: "B",
+        flagged: false,
+        diagramType: "equilateral",
+        labels: { side: "8", height: "t" },
+        options: [
+          { key: "A", html: formatSqrt("2", "3") },
+          { key: "B", html: formatSqrt("4", "3") },
+          { key: "C", html: formatSqrt("8", "2") },
+          { key: "D", html: "6" }
+        ]
+      },
+      {
+        number: 4,
+        question: "Pada segitiga PQR diketahui sisi p = 10 cm, ∠P = 30°, dan ∠Q = 45°. Berapakah panjang sisi q?",
+        selectedOption: "A",
+        flagged: true, // Ditandai kuning sesuai screenshot pada nomor 4!
+        diagramType: "sine-rule",
+        labels: { angleA: "30°", angleB: "45°", sideBC: "10" },
+        options: [
+          { key: "A", html: formatSqrt("10", "2") },
+          { key: "B", html: formatSqrt("5", "2") },
+          { key: "C", html: formatSqrt("10", "3") },
+          { key: "D", html: "15" }
+        ]
+      },
+      {
+        number: 5,
+        question: "Jika tan α = 3/4 untuk sudut lancip α, maka nilai dari cos α adalah...",
+        selectedOption: "C",
+        flagged: false,
+        diagramType: "right-triangle",
+        labels: { a: "3", b: "4", c: "5" },
+        options: [
+          { key: "A", html: "3/5" },
+          { key: "B", html: "4/3" },
+          { key: "C", html: "4/5" },
+          { key: "D", html: "5/4" }
+        ]
+      },
+      {
+        number: 6,
+        question: "Tentukan luas segitiga ABC jika diketahui panjang sisi a = 6 cm, b = 8 cm, dan sudut apit C = 30°!",
+        selectedOption: "A",
+        flagged: false,
+        diagramType: "area-triangle",
+        labels: { angleA: "30°", sideAB: "8", sideAC: "6" },
+        options: [
+          { key: "A", html: "12" },
+          { key: "B", html: formatSqrt("12", "3") },
+          { key: "C", html: "24" },
+          { key: "D", html: formatSqrt("24", "2") }
+        ]
+      },
+      {
+        // SOAL UTAMA DARI SCREENSHOT (NOMOR 7)
+        number: 7,
+        question: "Berapa panjang sisi AB dari segitiga di bawah ini?",
+        selectedOption: "B", // Opsi B (3√2) terpilih dan pop-out secara default
+        flagged: false,
+        diagramType: "screenshot-exact",
+        options: [
+          { key: "A", html: formatSqrt("6", "2") },
+          { key: "B", html: formatSqrt("3", "2") },
+          { key: "C", html: formatSqrt("12", "2") },
+          { key: "D", html: "3" }
+        ]
+      },
+      {
+        number: 8,
+        question: "Diketahui segitiga ABC dengan AB = 4 cm, AC = 6 cm, dan ∠A = 60°. Panjang sisi BC adalah...",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "cosine-rule",
+        labels: { angleA: "60°", sideAB: "4", sideAC: "6" },
+        options: [
+          { key: "A", html: formatSqrt("2", "7") },
+          { key: "B", html: formatSqrt("3", "7") },
+          { key: "C", html: formatSqrt("4", "3") },
+          { key: "D", html: "5" }
+        ]
+      },
+      {
+        number: 9,
+        question: "Nilai dari cos 120° pada kuadran II koordinat Kartesius adalah...",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "special-angle",
+        labels: { angle: "120°", hyp: "2", opp: "√3" },
+        options: [
+          { key: "A", html: "1/2" },
+          { key: "B", html: "-1/2" },
+          { key: "C", html: formatSqrt("-1/2 ", "3") },
+          { key: "D", html: formatSqrt("1/2 ", "2") }
+        ]
+      },
+      {
+        number: 10,
+        question: "Sebuah tangga dengan panjang 6 meter disandarkan pada dinding dengan sudut kemiringan 60° terhadap lantai. Tinggi ujung atas tangga dari lantai adalah...",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "special-angle",
+        labels: { angle: "60°", hyp: "6 m", opp: "h" },
+        options: [
+          { key: "A", html: formatSqrt("2", "3") },
+          { key: "B", html: formatSqrt("3", "2") },
+          { key: "C", html: formatSqrt("3", "3") },
+          { key: "D", html: "3" }
+        ]
+      },
+      {
+        number: 11,
+        question: "Konversikan besar sudut 3π/4 radian ke dalam satuan derajat!",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "sine-rule",
+        labels: { angleA: "3π/4", angleB: "45°", sideBC: "r" },
+        options: [
+          { key: "A", html: "120°" },
+          { key: "B", html: "135°" },
+          { key: "C", html: "150°" },
+          { key: "D", html: "225°" }
+        ]
+      },
+      {
+        number: 12,
+        question: "Bentuk sederhana dari identitas trigonometri (1 - cos² x) / sin x adalah...",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "right-triangle",
+        labels: { a: "sin x", b: "cos x", c: "1" },
+        options: [
+          { key: "A", html: "sin x" },
+          { key: "B", html: "cos x" },
+          { key: "C", html: "tan x" },
+          { key: "D", html: "1" }
+        ]
+      },
+      {
+        number: 13,
+        question: "Jika keliling sebuah segitiga sama sisi adalah 18√2 cm, maka panjang salah satu sisinya adalah...",
+        selectedOption: null,
+        flagged: false,
+        diagramType: "equilateral",
+        labels: { side: "s", height: "K = 18√2" },
+        options: [
+          { key: "A", html: formatSqrt("3", "2") },
+          { key: "B", html: formatSqrt("6", "2") },
+          { key: "C", html: formatSqrt("9", "2") },
+          { key: "D", html: "6" }
+        ]
+      }
+    ];
+
+    // Helper untuk merender simbol akar √ dengan garis atas presisi seperti di gambar
+    function formatSqrt(coeff, inside) {
+      return `${coeff}<span class="math-sqrt">&radic;<span class="radicand">${inside}</span></span>`;
+    }
+
+    // State Aktif (Mulai dari indeks 6 = Soal Nomor 7)
+    let currentIndex = 6;
+    let remainingSeconds = (1 * 3600) + (50 * 60) + 21; // 01:50:21 persis seperti gambar
+
+    /* ==========================================================================
+       GENERATOR DIAGRAM GEOMETRI SVG
+       Diagram Soal No. 7 dibuat 1:1 dengan gambar referensi
+       ========================================================================== */
+    function getDiagramSVG(questionObj) {
+      if (questionObj.diagramType === "screenshot-exact") {
+        // SVG Segitiga ABC Persis Screenshot (A=45°, B=75°, C di atas, sisi BC = √12)
+        return `
+          <svg width="390" height="235" viewBox="0 0 390 235" fill="none" xmlns="http://www.w3.org/2000/svg" class="max-w-full h-auto select-none">
+            <!-- Garis Segitiga Utama ABC -->
+            <polygon points="62,195 335,195 253,36" stroke="#22252A" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+
+            <!-- Label Titik Sudut A, B, C -->
+            <text x="48" y="213" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="13">A</text>
+            <text x="339" y="213" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="13">B</text>
+            <text x="249" y="24" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="13">C</text>
+
+            <!-- Label Sudut 45° di A -->
+            <text x="93" y="185" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="12.5">45°</text>
+
+            <!-- Label Sudut 75° di B -->
+            <text x="303" y="185" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="12.5">75°</text>
+
+            <!-- Simbol Akar √12 di sisi kanan BC -->
+            <g transform="translate(291, 90)">
+              <path d="M0 9.5 L2.5 8 L6 14.5 L10.5 1 L26 1" stroke="#22252A" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="11.5" y="14" fill="#22252A" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="12.5">12</text>
+            </g>
+          </svg>
+        `;
+      }
+
+      if (questionObj.diagramType === "right-triangle") {
+        const { a, b, c } = questionObj.labels;
+        return `
+          <svg width="360" height="220" viewBox="0 0 360 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="max-w-full h-auto">
+            <polygon points="85,180 285,180 85,45" stroke="#22252A" stroke-width="2" fill="none" stroke-linejoin="round"/>
+            <polyline points="85,162 103,162 103,180" stroke="#22252A" stroke-width="1.6" fill="none"/>
+            <text x="68" y="42" fill="#22252A" font-weight="700" font-size="13">A</text>
+            <text x="68" y="196" fill="#22252A" font-weight="700" font-size="13">B</text>
+            <text x="292" y="196" fill="#22252A" font-weight="700" font-size="13">C</text>
+            <text x="56" y="118" fill="#22252A" font-weight="600" font-size="13">${a}</text>
+            <text x="180" y="202" fill="#22252A" font-weight="600" font-size="13">${b}</text>
+            <text x="195" y="102" fill="#259CFA" font-weight="700" font-size="13.5">${c}</text>
+          </svg>
+        `;
+      }
+
+      if (questionObj.diagramType === "equilateral") {
+        const { side, height } = questionObj.labels;
+        return `
+          <svg width="360" height="220" viewBox="0 0 360 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="max-w-full h-auto">
+            <polygon points="80,185 280,185 180,35" stroke="#22252A" stroke-width="2" fill="none" stroke-linejoin="round"/>
+            <line x1="180" y1="35" x2="180" y2="185" stroke="#259CFA" stroke-width="1.8" stroke-dasharray="5 4"/>
+            <text x="175" y="24" fill="#22252A" font-weight="700" font-size="13">C</text>
+            <text x="65" y="200" fill="#22252A" font-weight="700" font-size="13">A</text>
+            <text x="288" y="200" fill="#22252A" font-weight="700" font-size="13">B</text>
+            <text x="242" y="108" fill="#22252A" font-weight="600" font-size="13">${side}</text>
+            <text x="188" y="125" fill="#259CFA" font-weight="700" font-size="13">${height}</text>
+          </svg>
+        `;
+      }
+
+      // Default general triangle untuk soal variasi lainnya
+      const l = questionObj.labels || {};
+      return `
+        <svg width="380" height="225" viewBox="0 0 380 225" fill="none" xmlns="http://www.w3.org/2000/svg" class="max-w-full h-auto">
+          <polygon points="65,188 320,188 235,40" stroke="#22252A" stroke-width="2" fill="none" stroke-linejoin="round"/>
+          <text x="50" y="205" fill="#22252A" font-weight="700" font-size="13">A</text>
+          <text x="326" y="205" fill="#22252A" font-weight="700" font-size="13">B</text>
+          <text x="232" y="28" fill="#22252A" font-weight="700" font-size="13">C</text>
+          <text x="95" y="178" fill="#22252A" font-weight="600" font-size="12.5">${l.angleA || l.angle || '45°'}</text>
+          <text x="282" y="178" fill="#22252A" font-weight="600" font-size="12.5">${l.angleB || ''}</text>
+          <text x="285" y="112" fill="#22252A" font-weight="600" font-size="13">${l.sideBC || l.hyp || l.sideAC || ''}</text>
+          <text x="185" y="206" fill="#22252A" font-weight="600" font-size="13">${l.sideAB || l.opp || ''}</text>
+        </svg>
+      `;
+    }
+
+    /* ==========================================================================
+       RENDER FUNGSI ANTARMUKA
+       ========================================================================== */
+    function renderStepper() {
+      const container = document.getElementById("stepperContainer");
+      let html = "";
+
+      examQuestions.forEach((q, idx) => {
+        const isCurrent = idx === currentIndex;
+        const isAnswered = q.selectedOption !== null;
+        const isFlagged = q.flagged;
+
+        let stateClasses = "num-pill";
+        if (isCurrent) {
+          stateClasses += " is-current";
+        } else if (isAnswered) {
+          stateClasses += " is-answered";
+        }
+        if (isFlagged) {
+          stateClasses += " is-flagged";
+        }
+
+        html += `
+          <button
+            type="button"
+            role="tab"
+            aria-selected="${isCurrent}"
+            aria-label="Soal nomor ${q.number}${isFlagged ? ' (Ditandai ragu)' : ''}"
+            class="${stateClasses}"
+            onclick="goToQuestion(${idx})"
+          >
+            ${q.number}
+            <span class="flag-dot"></span>
+          </button>
+        `;
+      });
+
+      // Tombol Chevron Kanan (>) sesuai gambar
+      html += `
+        <button
+          type="button"
+          class="w-7 h-7 min-w-[28px] rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition ml-1"
+          title="Geser nomor berikutnya"
+          onclick="navigateQuestion(1)"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function renderQuestionAndOptions(animate = false) {
+      const currentQ = examQuestions[currentIndex];
+      const questionPanel = document.getElementById("questionPanel");
+      const questionText = document.getElementById("questionText");
+      const diagramContainer = document.getElementById("diagramContainer");
+      const optionsContainer = document.getElementById("optionsContainer");
+
+      // Update Teks & SVG Diagram
+      questionText.innerHTML = currentQ.question;
+      diagramContainer.innerHTML = getDiagramSVG(currentQ);
+
+      if (animate) {
+        questionPanel.classList.remove("animate-enter");
+        void questionPanel.offsetWidth; // Reflow trigger
+        questionPanel.classList.add("animate-enter");
+      }
+
+      // Render Pilihan A, B, C, D
+      optionsContainer.innerHTML = currentQ.options.map((opt, i) => {
+        const isSelected = currentQ.selectedOption === opt.key;
+        const staggerStyle = animate ? `animation: fadeSlideUp 340ms cubic-bezier(0.215, 0.61, 0.355, 1) ${i * 45}ms both;` : "";
+
+        return `
+          <button
+            type="button"
+            role="radio"
+            aria-checked="${isSelected}"
+            class="option-card ${isSelected ? 'is-selected' : ''}"
+            style="${staggerStyle}"
+            onclick="selectOption('${opt.key}')"
+          >
+            <span class="option-badge">${opt.key}</span>
+            <span class="option-value">${opt.html}</span>
+          </button>
+        `;
+      }).join("");
+
+      // Update State Tombol Footer
+      const btnFlag = document.getElementById("btnFlag");
+      const flagBtnText = document.getElementById("flagBtnText");
+      if (currentQ.flagged) {
+        btnFlag.classList.add("is-flagged-active");
+        flagBtnText.textContent = "Soal ditandai";
+      } else {
+        btnFlag.classList.remove("is-flagged-active");
+        flagBtnText.textContent = "Tandai soal";
+      }
+
+      const btnPrev = document.getElementById("btnPrev");
+      btnPrev.style.opacity = currentIndex === 0 ? "0.5" : "1";
+
+      const nextBtnText = document.getElementById("nextBtnText");
+      nextBtnText.textContent = currentIndex === examQuestions.length - 1 ? "Selesai Ujian" : "Selanjutnya";
+    }
+
+    /* ==========================================================================
+       INTERAKSI PENGGUNA (PILIH JAWABAN, PINDAH SOAL, TANDAI SOAL)
+       ========================================================================== */
+    function selectOption(optionKey) {
+      examQuestions[currentIndex].selectedOption = optionKey;
+
+      // Update kelas tanpa mereset animasi keseluruhan kartu agar spring pop-out mulus
+      const cards = document.querySelectorAll("#optionsContainer .option-card");
+      cards.forEach((card) => {
+        const badgeKey = card.querySelector(".option-badge").textContent.trim();
+        if (badgeKey === optionKey) {
+          card.classList.add("is-selected");
+          card.setAttribute("aria-checked", "true");
+        } else {
+          card.classList.remove("is-selected");
+          card.setAttribute("aria-checked", "false");
+        }
+      });
+
+      renderStepper();
+    }
+
+    function goToQuestion(index) {
+      if (index < 0 || index >= examQuestions.length || index === currentIndex) return;
+      currentIndex = index;
+      renderStepper();
+      renderQuestionAndOptions(true);
+    }
+
+    function navigateQuestion(direction) {
+      const target = currentIndex + direction;
+      if (target < 0) {
+        showToast("Ini adalah soal pertama (Nomor 1)");
+        return;
+      }
+      if (target >= examQuestions.length) {
+        showExamSummaryModal();
+        return;
+      }
+      goToQuestion(target);
+    }
+
+    function toggleFlagCurrent() {
+      const currentQ = examQuestions[currentIndex];
+      currentQ.flagged = !currentQ.flagged;
+      renderStepper();
+      renderQuestionAndOptions(false);
+      showToast(
+        currentQ.flagged
+          ? `Soal nomor ${currentQ.number} ditandai ragu-ragu`
+          : `Tanda ragu-ragu pada soal nomor ${currentQ.number} dihapus`
+      );
+    }
+
+    /* ==========================================================================
+       LIVE COUNTDOWN TIMER (Tabular-Nums)
+       ========================================================================== */
+    function startCountdown() {
+      const display = document.getElementById("countdownDisplay");
+      setInterval(() => {
+        if (remainingSeconds > 0) {
+          remainingSeconds--;
+          const hrs = String(Math.floor(remainingSeconds / 3600)).padStart(2, "0");
+          const mins = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, "0");
+          const secs = String(remainingSeconds % 60).padStart(2, "0");
+          display.textContent = `${hrs}:${mins}:${secs}`;
+        }
+      }, 1000);
+    }
+
+    /* ==========================================================================
+       MODAL & TOAST HELPER
+       ========================================================================== */
+    let toastTimer = null;
+    function showToast(message) {
+      const banner = document.getElementById("toastBanner");
+      const text = document.getElementById("toastText");
+      text.textContent = message;
+      banner.classList.remove("opacity-0", "translate-y-3");
+      banner.classList.add("opacity-100", "translate-y-0");
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.remove("opacity-100", "translate-y-0");
+        banner.classList.add("opacity-0", "translate-y-3");
+      }, 2200);
+    }
+
+    function toggleShortcutModal() {
+      const modal = document.getElementById("infoModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function showExamSummaryModal() {
+      const answeredCount = examQuestions.filter(q => q.selectedOption !== null).length;
+      const flaggedCount = examQuestions.filter(q => q.flagged).length;
+
+      document.getElementById("modalTitle").textContent = "Ringkasan Pengerjaan Ujian";
+      document.getElementById("modalBody").innerHTML = `
+        <p class="text-slate-600">Apakah Anda ingin memeriksa kembali jawaban sebelum mengumpulkan ujian?</p>
+        <div class="grid grid-cols-3 gap-3 text-center my-3">
+          <div class="p-3 rounded-xl bg-sky-50">
+            <div class="text-xl font-extrabold text-sky-600">${answeredCount}/13</div>
+            <div class="text-[11px] font-semibold text-slate-500">Terjawab</div>
+          </div>
+          <div class="p-3 rounded-xl bg-amber-50">
+            <div class="text-xl font-extrabold text-amber-600">${flaggedCount}</div>
+            <div class="text-[11px] font-semibold text-slate-500">Ditandai Ragu</div>
+          </div>
+          <div class="p-3 rounded-xl bg-rose-50">
+            <div class="text-xl font-extrabold text-rose-600">${13 - answeredCount}</div>
+            <div class="text-[11px] font-semibold text-slate-500">Belum Dijawab</div>
+          </div>
+        </div>
+      `;
+      toggleShortcutModal();
+    }
+
+    function closeModal() {
+      const modal = document.getElementById("infoModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    /* ==========================================================================
+       KEYBOARD SHORTCUTS (A/B/C/D, Arrow Left/Right, F)
+       ========================================================================== */
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      const key = e.key.toUpperCase();
+
+      if (["A", "B", "C", "D"].includes(key)) {
+        selectOption(key);
+      } else if (e.key === "ArrowRight") {
+        navigateQuestion(1);
+      } else if (e.key === "ArrowLeft") {
+        navigateQuestion(-1);
+      } else if (key === "F") {
+        toggleFlagCurrent();
+      } else if (e.key === "Escape") {
+        closeModal();
+      }
+    });
+
+    // Inisialisasi saat halaman dimuat
+    window.onload = function () {
+      renderStepper();
+      renderQuestionAndOptions(false);
+      startCountdown();
+    };
+  </script>
+</body>
+</html>
