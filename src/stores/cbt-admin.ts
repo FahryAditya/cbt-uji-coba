@@ -3,10 +3,14 @@ import { apiRequest } from "@/lib/api";
 
 export interface StudentProctor {
   id: string;
+  sesiId?: string;
+  siswaId?: string;
   name: string;
   nis: string;
   class: string;
-  status: "online" | "idle" | "offline";
+  status: "online" | "idle" | "offline" | "locked" | "completed";
+  isLocked?: boolean;
+  isLoggedIn?: boolean;
   progress: number;
   totalQ: number;
   violations: number;
@@ -58,11 +62,23 @@ interface CBTAdminState {
   students: StudentProctor[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  filterStatus: "all" | "online" | "idle" | "flagged";
-  setFilterStatus: (status: "all" | "online" | "idle" | "flagged") => void;
+  filterStatus: "all" | "online" | "not_started" | "locked" | "completed";
+  setFilterStatus: (status: "all" | "online" | "not_started" | "locked" | "completed") => void;
+  kpi: {
+    activeStudents: number;
+    totalStudents: number;
+    notLoggedInCount: number;
+    lockedCount: number;
+    completedCount: number;
+    avgProgress: number;
+    totalViolations: number;
+    globalTimer: string;
+  };
 
   // Proctor Actions
-  resetStudentLogin: (studentId: string) => Promise<void>;
+  resetStudentLogin: (studentId: string, sesiId?: string) => Promise<void>;
+  unlockStudent: (studentId: string, sesiId?: string) => Promise<void>;
+  resetStudentAnswers: (studentId: string, sesiId?: string) => Promise<void>;
   addStudentTime: (studentId: string, minutes?: number) => Promise<void>;
   warnStudent: (studentId: string) => Promise<void>;
   broadcastMessage: string;
@@ -77,6 +93,7 @@ interface CBTAdminState {
   questions: QuestionItem[];
   activeBankSoalId: string;
   addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<void>;
+  updateQuestion: (id: string, q: Partial<QuestionItem>) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
 
   // Exams List
@@ -147,6 +164,56 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   filterStatus: "all",
   setFilterStatus: (status) => set({ filterStatus: status }),
+
+  kpi: {
+    activeStudents: 0,
+    totalStudents: 0,
+    notLoggedInCount: 0,
+    lockedCount: 0,
+    completedCount: 0,
+    avgProgress: 0,
+    totalViolations: 0,
+    globalTimer: "01:50:21",
+  },
+
+  unlockStudent: async (studentId: string, sesiId?: string) => {
+    try {
+      await apiRequest("/api/proctoring/unlock", {
+        method: "POST",
+        body: JSON.stringify({ studentId, sesiId }),
+      });
+      set((state) => ({
+        students: state.students.map((s) =>
+          (s.siswaId === studentId || s.id === studentId || s.sesiId === sesiId)
+            ? { ...s, status: "online", isLocked: false, violations: 2 }
+            : s
+        ),
+      }));
+      await get().fetchProctoring();
+    } catch (err) {
+      console.error("Gagal buka kunci:", err);
+    }
+  },
+
+  resetStudentAnswers: async (studentId: string, sesiId?: string) => {
+    const { activeExamId } = get();
+    try {
+      await apiRequest("/api/proctoring/reset-answers", {
+        method: "POST",
+        body: JSON.stringify({ studentId, sesiId, ujianId: activeExamId }),
+      });
+      set((state) => ({
+        students: state.students.map((s) =>
+          (s.siswaId === studentId || s.id === studentId || s.sesiId === sesiId)
+            ? { ...s, progress: 0 }
+            : s
+        ),
+      }));
+      await get().fetchProctoring();
+    } catch (err) {
+      console.error("Gagal reset jawaban:", err);
+    }
+  },
 
   resetStudentLogin: async (studentId: string) => {
     const { activeExamId } = get();
@@ -285,6 +352,31 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     }
   },
 
+  updateQuestion: async (id: string, q: Partial<QuestionItem>) => {
+    const { activeBankSoalId } = get();
+    try {
+      await apiRequest(`/api/bank-soal/soal/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          pertanyaan: q.text,
+          bobotNilai: q.points,
+          gambarUrl: q.imageUrl || null,
+          options: q.options?.map((opt) => ({
+            label: opt.label,
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+            imageUrl: opt.imageUrl || null,
+          })),
+        }),
+      });
+      if (activeBankSoalId) {
+        await get().fetchQuestions(activeBankSoalId);
+      }
+    } catch (err) {
+      console.error("Gagal update soal:", err);
+    }
+  },
+
   exams: [],
   createExam: async (examData) => {
     try {
@@ -368,8 +460,13 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     try {
       const path = activeExamId ? `/api/proctoring/${activeExamId}` : "/api/proctoring";
       const res = await apiRequest<{ success: boolean; data: any }>(path);
-      if (res.data?.students) {
-        set({ students: res.data.students });
+      if (res.data) {
+        if (Array.isArray(res.data.students)) {
+          set({ students: res.data.students });
+        }
+        if (res.data.kpi) {
+          set({ kpi: res.data.kpi });
+        }
       }
     } catch (err) {
       console.error("Gagal fetch proctoring:", err);

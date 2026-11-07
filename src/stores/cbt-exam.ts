@@ -46,6 +46,9 @@ interface CBTExamState {
   setTimer: (secs: number) => void;
   violations: number;
   incrementViolations: () => Promise<void>;
+  isLocked: boolean;
+  setIsLocked: (locked: boolean) => void;
+  checkLockStatus: () => Promise<boolean>;
 
   // Submission
   isSubmitted: boolean;
@@ -87,11 +90,15 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   flagged: {},
   secondsRemaining: 0,
   violations: 0,
+  isLocked: false,
+  setIsLocked: (locked) => set({ isLocked: locked }),
   isSubmitted: false,
   scoreResult: null,
   isLoading: false,
 
   selectAnswer: async (qNum, optionLabel, optionId) => {
+    if (get().isLocked) return;
+
     // 1. Optimistic Update di UI
     set((state) => ({
       answers: { ...state.answers, [qNum]: optionLabel },
@@ -113,7 +120,10 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           isRaguRagu: Boolean(get().flagged[qNum]),
         }),
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.message?.includes("terkunci") || err?.status === 403) {
+        set({ isLocked: true });
+      }
       console.warn("Autosave gagal, akan disimpan lokal:", err);
     }
   },
@@ -125,9 +135,9 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
 
   decrementTimer: () =>
     set((state) => {
+      if (state.isLocked) return state; // Bekukan timer saat ujian terkunci
       const nextTime = Math.max(0, state.secondsRemaining - 1);
       if (nextTime === 0 && !state.isSubmitted && state.questions.length > 0) {
-        // Otomatis submit jika waktu habis
         setTimeout(() => get().submitExam(), 0);
       }
       return { secondsRemaining: nextTime };
@@ -136,17 +146,52 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   setTimer: (secs) => set({ secondsRemaining: secs }),
 
   incrementViolations: async () => {
-    set((state) => ({ violations: state.violations + 1 }));
-    const { sesiId } = get();
-    if (!sesiId) return;
+    const nextViolations = get().violations + 1;
+    const shouldLock = nextViolations >= 3;
+    set((state) => ({
+      violations: nextViolations,
+      isLocked: shouldLock ? true : state.isLocked,
+    }));
+
+    const { sesiId, ujianId } = get();
+    if (!sesiId && !ujianId) return;
+
     try {
-      await apiRequest("/api/exam/violation", {
-        method: "POST",
-        body: JSON.stringify({ sesiId }),
-      });
+      const res = await apiRequest<{ success: boolean; isLocked?: boolean; violations?: number }>(
+        "/api/exam/violation",
+        {
+          method: "POST",
+          body: JSON.stringify({ sesiId, ujianId }),
+        }
+      );
+      if (res.isLocked) {
+        set({ isLocked: true });
+      }
     } catch {
       // ignore
     }
+  },
+
+  checkLockStatus: async () => {
+    const { sesiId } = get();
+    if (!sesiId) return false;
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        data?: { status: string; isLocked: boolean; violations: number };
+      }>(`/api/exam/status/${sesiId}`);
+      if (res.data) {
+        const locked = res.data.isLocked || res.data.status === "TERKUNCI";
+        set({
+          isLocked: locked,
+          violations: res.data.violations ?? get().violations,
+        });
+        return locked;
+      }
+    } catch {
+      // ignore
+    }
+    return get().isLocked;
   },
 
   submitExam: async () => {

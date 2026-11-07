@@ -16,6 +16,8 @@ import {
   X,
   Loader2,
   BookOpen,
+  AlertOctagon,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,6 +38,8 @@ export default function StudentExamView() {
     decrementTimer,
     violations,
     incrementViolations,
+    isLocked,
+    checkLockStatus,
     isSubmitted,
     scoreResult,
     submitExam,
@@ -96,9 +100,18 @@ export default function StudentExamView() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [incrementViolations, isSubmitted, totalQuestions]);
 
+  // Polling cek pembukaan kunci oleh pengawas saat ujian terkunci
+  useEffect(() => {
+    if (!isLocked) return;
+    const interval = setInterval(() => {
+      checkLockStatus();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isLocked, checkLockStatus]);
+
   // Keyboard Shortcuts (A-E, Panah Kiri/Kanan, Spasi)
   useEffect(() => {
-    if (isSubmitted || !currentQ) return;
+    if (isSubmitted || isLocked || !currentQ) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) return;
 
@@ -546,6 +559,41 @@ export default function StudentExamView() {
             >
               Kembali ke Halaman Utama
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay Ujian Terkunci Otomatis (≥3x Pelanggaran) */}
+      {isLocked && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-8 text-center shadow-2xl border-4 border-rose-500">
+            <div className="w-20 h-20 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center mb-5 animate-pulse">
+              <AlertOctagon className="w-12 h-12" />
+            </div>
+            <span className="text-xs font-extrabold uppercase tracking-widest text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+              Sistem Pengawasan Otomatis
+            </span>
+            <h2 className="text-2xl font-black text-slate-800 mt-3 mb-2">
+              Ujian Terkunci Otomatis
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed mb-6">
+              Sistem CBT mendeteksi Anda telah berpindah tab atau meninggalkan layar ujian sebanyak{" "}
+              <span className="font-extrabold text-rose-600">{violations} kali</span>. Lembar ujian Anda telah dibekukan demi menjaga integritas pelaksanaan ujian.
+            </p>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 mb-6">
+              <div className="text-xs font-bold text-slate-700">Langkah untuk melanjutkan:</div>
+              <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
+                <li>Segera lapor kepada pengawas ruang ujian di depan kelas.</li>
+                <li>Pengawas akan memeriksa riwayat aktivitas Anda di dashboard admin.</li>
+                <li>Layar ini akan terbuka kembali secara otomatis saat pengawas menekan tombol <strong>Buka Kunci</strong>.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-center gap-2.5 text-xs font-bold text-sky-700 bg-sky-50 py-3.5 px-4 rounded-xl border border-sky-100">
+              <Loader2 className="w-4 h-4 animate-spin text-sky-500" />
+              <span>Menunggu pembukaan kunci oleh pengawas ujian...</span>
+            </div>
           </div>
         </div>
       )}
