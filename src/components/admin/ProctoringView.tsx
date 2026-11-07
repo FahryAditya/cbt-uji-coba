@@ -187,7 +187,14 @@ export default function ProctoringView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {filteredStudents.map((s) => {
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs font-semibold">
+                    Belum ada siswa yang sedang mengerjakan ujian pada sesi ini.
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((s) => {
                 const progressPct = Math.round((s.progress / s.totalQ) * 100);
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
@@ -334,7 +341,7 @@ export default function ProctoringView() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

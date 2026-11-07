@@ -12,9 +12,13 @@ import { useCBTAdminStore } from "@/stores/cbt-admin";
 import { Settings, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 export default function AdminPage() {
-  const { activeTab } = useCBTAdminStore();
+  const { activeTab, fetchAllData } = useCBTAdminStore();
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [broadcastSentToast, setBroadcastSentToast] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
   const handleBroadcastSend = (message: string) => {
     setBroadcastSentToast(`Pesan broadcast terkirim ke siswa: "${message}"`);

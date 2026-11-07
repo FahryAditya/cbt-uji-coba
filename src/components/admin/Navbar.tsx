@@ -10,10 +10,11 @@ interface NavbarProps {
 
 export default function Navbar({ onOpenBroadcast }: NavbarProps) {
   const {
+    activeExamId,
+    setActiveExamId,
     activeToken,
     regenerateToken,
     activeExamTitle,
-    setActiveExamTitle,
     exams,
   } = useCBTAdminStore();
 
@@ -40,15 +41,19 @@ export default function Navbar({ onOpenBroadcast }: NavbarProps) {
             </span>
           </div>
           <select
-            value={activeExamTitle}
-            onChange={(e) => setActiveExamTitle(e.target.value)}
+            value={activeExamId}
+            onChange={(e) => setActiveExamId(e.target.value)}
             className="text-base font-bold text-slate-800 bg-transparent border-none p-0 focus:ring-0 cursor-pointer"
           >
-            {exams.map((ex) => (
-              <option key={ex.id} value={ex.title}>
-                {ex.title}
-              </option>
-            ))}
+            {exams.length === 0 ? (
+              <option value="">(Belum ada ujian)</option>
+            ) : (
+              exams.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.title}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>

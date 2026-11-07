@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Send, X, AlertCircle } from "lucide-react";
+import { useCBTAdminStore } from "@/stores/cbt-admin";
 
 interface BroadcastModalProps {
   isOpen: boolean;
@@ -14,14 +15,16 @@ export default function BroadcastModal({
   onClose,
   onSend,
 }: BroadcastModalProps) {
+  const { availableClasses, sendBroadcast } = useCBTAdminStore();
   const [message, setMessage] = useState("");
   const [target, setTarget] = useState("all");
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
+    await sendBroadcast(message.trim());
     onSend(message.trim());
     setMessage("");
     onClose();
@@ -63,8 +66,11 @@ export default function BroadcastModal({
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500"
             >
               <option value="all">Seluruh Siswa yang Sedang Ujian (Semua Kelas)</option>
-              <option value="XII MIPA 1">Khusus Kelas XII MIPA 1</option>
-              <option value="XII MIPA 2">Khusus Kelas XII MIPA 2</option>
+              {availableClasses.map((cls) => (
+                <option key={cls} value={cls}>
+                  Khusus Kelas {cls}
+                </option>
+              ))}
             </select>
           </div>
 

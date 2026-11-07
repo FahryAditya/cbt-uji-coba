@@ -16,6 +16,29 @@ import Link from "next/link";
 
 export default function Sidebar() {
   const { activeTab, setActiveTab } = useCBTAdminStore();
+  const [userName, setUserName] = React.useState("Admin CBT");
+  const [userRole, setUserRole] = React.useState("ADMIN");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("cbt_user");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setUserName(parsed.nama || parsed.username || "Admin CBT");
+          setUserRole(parsed.role || "ADMIN");
+        } catch {}
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cbt_token");
+      localStorage.removeItem("cbt_user");
+      window.location.href = "/";
+    }
+  };
 
   interface NavItem {
     id: "proctoring" | "bank-soal" | "jadwal" | "nilai" | "settings";
@@ -93,16 +116,20 @@ export default function Sidebar() {
           <span>Buka Layar Ujian Siswa</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
-        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition cursor-pointer">
+        <div
+          onClick={handleLogout}
+          title="Klik untuk keluar (Logout)"
+          className="flex items-center gap-3 p-2 rounded-xl hover:bg-rose-50/70 transition cursor-pointer"
+        >
           <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">
-            AD
+            {userName.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-xs text-slate-800 truncate">
-              Admin Sekolah
+              {userName}
             </div>
             <div className="text-[10px] text-slate-400 truncate">
-              admin@sekolah.sch.id
+              Role: {userRole}
             </div>
           </div>
           <LogOut className="w-4 h-4 text-slate-400 hover:text-rose-500" />

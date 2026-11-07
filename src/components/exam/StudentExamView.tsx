@@ -14,11 +14,16 @@ import {
   ShieldCheck,
   Send,
   X,
+  Loader2,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function StudentExamView() {
+  const router = useRouter();
   const {
+    questions,
     currentQuestionIndex,
     setCurrentQuestionIndex,
     nextQuestion,
@@ -32,19 +37,34 @@ export default function StudentExamView() {
     violations,
     incrementViolations,
     isSubmitted,
+    scoreResult,
     submitExam,
     studentName,
     studentNIS,
     studentClass,
     examTitle,
+    initExamFromStorage,
+    isLoading,
   } = useCBTExamStore();
 
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const totalQuestions = 40;
-  const currentQNum = currentQuestionIndex + 1;
+  // Inisialisasi sesi ujian dari localStorage jika belum termuat
+  useEffect(() => {
+    if (questions.length === 0) {
+      initExamFromStorage().then((ok) => {
+        if (!ok) {
+          // Jika tidak ada token aktif, beri waktu sebentar sebelum redirect
+        }
+      });
+    }
+  }, [questions.length, initExamFromStorage]);
+
+  const totalQuestions = questions.length;
+  const currentQ = questions[currentQuestionIndex];
+  const currentQNum = currentQ ? currentQ.number : currentQuestionIndex + 1;
 
   // Format Timer HH:MM:SS
   const formatTimer = (totalSecs: number) => {
@@ -56,16 +76,16 @@ export default function StudentExamView() {
 
   // Timer Tick
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || totalQuestions === 0) return;
     const interval = setInterval(() => {
       decrementTimer();
     }, 1000);
     return () => clearInterval(interval);
-  }, [decrementTimer, isSubmitted]);
+  }, [decrementTimer, isSubmitted, totalQuestions]);
 
   // Anti-Cheating: Visibility Change detection (Pindah tab/window)
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || totalQuestions === 0) return;
     const handleVisibilityChange = () => {
       if (document.hidden) {
         incrementViolations();
@@ -74,18 +94,18 @@ export default function StudentExamView() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [incrementViolations, isSubmitted]);
+  }, [incrementViolations, isSubmitted, totalQuestions]);
 
   // Keyboard Shortcuts (A-E, Panah Kiri/Kanan, Spasi)
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || !currentQ) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if focus is in input
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) return;
 
       const key = e.key.toUpperCase();
-      if (["A", "B", "C", "D", "E"].includes(key)) {
-        selectAnswer(currentQNum, key);
+      const matchedOpt = currentQ.options.find((o) => o.label === key);
+      if (matchedOpt) {
+        selectAnswer(currentQNum, key, matchedOpt.id);
         setToastMessage(`Opsi ${key} dipilih (Tersimpan otomatis)`);
       } else if (e.key === "ArrowRight") {
         nextQuestion();
@@ -98,25 +118,65 @@ export default function StudentExamView() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentQNum, nextQuestion, prevQuestion, selectAnswer, toggleFlag, isSubmitted]);
+  }, [currentQ, currentQNum, nextQuestion, prevQuestion, selectAnswer, toggleFlag, isSubmitted]);
 
   // Auto clear toast
   useEffect(() => {
-    if (!toastMessage) return;
-    const t = setTimeout(() => setToastMessage(null), 2500);
-    return () => clearTimeout(t);
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 2500);
+      return () => clearTimeout(timer);
+    }
   }, [toastMessage]);
 
   const answeredCount = Object.keys(answers).length;
-  const flaggedCount = Object.values(flagged).filter(Boolean).length;
-  const unansweredCount = totalQuestions - answeredCount;
+  const isGeometryQuestion = currentQ?.text?.toLowerCase().includes("segitiga") || currentQ?.text?.toLowerCase().includes("sudut");
 
-  // Soal Aktif (Contoh Geometri persis seperti di siswa.html jika nomor 7)
-  const isGeometryQuestion = currentQNum === 7;
+  // Layar jika soal belum termuat
+  if (totalQuestions === 0) {
+    return (
+      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-xl border border-slate-200">
+          <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-500 mx-auto flex items-center justify-center mb-4">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-extrabold text-slate-800">
+            {isLoading ? "Memuat Lembar Ujian..." : "Sesi Ujian Belum Aktif"}
+          </h2>
+          <p className="text-xs text-slate-500 mt-2 mb-6">
+            {isLoading
+              ? "Sedang menyinkronkan data soal langsung dari server..."
+              : "Silakan masukkan token ujian yang valid dari pengawas melalui halaman login."}
+          </p>
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-sky-600">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Menghubungkan ke NeonDB...</span>
+            </div>
+          ) : (
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Kembali ke Halaman Login</span>
+            </Link>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-100/70 via-sky-50/50 to-white flex flex-col items-center justify-center p-3 md:p-6 font-sans">
-      {/* Container Utama Jendela Ujian */}
+    <main className="min-h-screen bg-slate-100 py-6 px-4 sm:px-6 flex items-center justify-center">
+      {/* Toast Notifikasi Floating */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 animate-bounce">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Main Container Card Ujian */}
       <div className="w-full max-w-6xl min-h-[720px] bg-white rounded-3xl shadow-2xl shadow-sky-500/10 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
         
         {/* ========================================================
@@ -151,10 +211,10 @@ export default function StudentExamView() {
               </div>
             </div>
 
-            {/* Grid Tombol Nomor 1 s/d 40 */}
+            {/* Grid Tombol Nomor 1 s/d N */}
             <div className="grid grid-cols-5 gap-2 max-h-[420px] overflow-y-auto pr-1">
-              {Array.from({ length: totalQuestions }, (_, i) => {
-                const qNum = i + 1;
+              {questions.map((q, i) => {
+                const qNum = q.number;
                 const isCurrent = i === currentQuestionIndex;
                 const isAnswered = answers[qNum] !== undefined;
                 const isFlagged = flagged[qNum] === true;
@@ -170,7 +230,7 @@ export default function StudentExamView() {
 
                 return (
                   <button
-                    key={qNum}
+                    key={q.id}
                     onClick={() => setCurrentQuestionIndex(i)}
                     className={`h-9 rounded-xl text-xs flex items-center justify-center transition ${btnStyle}`}
                   >
@@ -181,7 +241,7 @@ export default function StudentExamView() {
             </div>
           </div>
 
-          {/* Sisi Bawah Sidebar: Tombol Panduan Pintasan */}
+          {/* Sisi Bawah Sidebar */}
           <div className="pt-4 border-t border-slate-200 space-y-2">
             <button
               onClick={() => setShowGuideModal(true)}
@@ -191,11 +251,11 @@ export default function StudentExamView() {
               <span>Pintasan Keyboard</span>
             </button>
             <Link
-              href="/admin"
+              href="/"
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 text-xs font-semibold transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali ke Dashboard Admin</span>
+              <span>Keluar Ujian</span>
             </Link>
           </div>
         </aside>
@@ -244,104 +304,102 @@ export default function StudentExamView() {
             </div>
 
             {/* Area Lembar Soal Aktif */}
-            <div className="space-y-6">
-              {/* Nomor Soal Badge & Bobot */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-sky-500 text-white font-extrabold text-sm flex items-center justify-center shadow-sm">
-                    {currentQNum}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">
-                    Bobot: 2.5 Poin
-                  </span>
+            {currentQ && (
+              <div className="space-y-6">
+                {/* Nomor Soal Badge & Bobot */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-sky-500 text-white font-extrabold text-sm flex items-center justify-center shadow-sm">
+                      {currentQNum}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      Bobot: {currentQ.points} Poin
+                    </span>
+                  </div>
+                  {flagged[currentQNum] && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                      <Flag className="w-3 h-3 fill-amber-500" />
+                      Ditandai Ragu-Ragu
+                    </span>
+                  )}
                 </div>
-                {flagged[currentQNum] && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
-                    <Flag className="w-3 h-3 fill-amber-500" />
-                    Ditandai Ragu-Ragu
-                  </span>
-                )}
-              </div>
 
-              {/* Teks Soal */}
-              <div className="text-base font-semibold text-slate-800 leading-relaxed">
-                {isGeometryQuestion ? (
-                  <>
-                    Sebuah segitiga ABC memiliki sudut A = 45°, sudut B = 75°, dan panjang sisi yang berseberangan dengan sudut C adalah 12 cm. Berapakah panjang sisi AB dari segitiga di bawah ini?
-                  </>
-                ) : (
-                  <>
-                    Soal Nomor {currentQNum}: Perhatikan persamaan fungsi matematika berikut. Tentukan nilai variabel x yang memenuhi kondisi batas yang ditentukan pada interval terbuka (0, 2π)!
-                  </>
-                )}
-              </div>
-
-              {/* Diagram Geometri (Matching Design/siswa.html persis) */}
-              {isGeometryQuestion && (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                  <svg width="340" height="190" viewBox="0 0 390 235" fill="none" className="max-w-full">
-                    <polygon points="62,195 335,195 253,36" stroke="#1E293B" strokeWidth="2.5" fill="#FFFFFF" strokeLinejoin="round" strokeLinecap="round" />
-                    <text x="44" y="215" fill="#1E293B" fontWeight="800" fontSize="16">A</text>
-                    <text x="342" y="215" fill="#1E293B" fontWeight="800" fontSize="16">B</text>
-                    <text x="249" y="24" fill="#1E293B" fontWeight="800" fontSize="16">C</text>
-                    <text x="93" y="185" fill="#0284C7" fontWeight="700" fontSize="14">45°</text>
-                    <text x="298" y="185" fill="#0284C7" fontWeight="700" fontSize="14">75°</text>
-                    <g transform="translate(291, 90)">
-                      <path d="M0 9.5 L2.5 8 L6 14.5 L10.5 1 L26 1" stroke="#E11D48" strokeWidth="2" fill="none" />
-                      <text x="11.5" y="14" fill="#E11D48" fontWeight="800" fontSize="14">12 cm</text>
-                    </g>
-                  </svg>
+                {/* Teks Soal Riil dari Database NeonDB */}
+                <div className="text-base font-semibold text-slate-800 leading-relaxed whitespace-pre-wrap">
+                  {currentQ.text}
                 </div>
-              )}
 
-              {/* Opsi Pilihan Jawaban (A, B, C, D, E) */}
-              <div className="space-y-3">
-                {[
-                  { key: "A", text: isGeometryQuestion ? "6√2 cm" : "x = π/4 atau x = 3π/4" },
-                  { key: "B", text: isGeometryQuestion ? "3√2 cm" : "x = π/3 atau x = 5π/3" },
-                  { key: "C", text: isGeometryQuestion ? "12√2 cm" : "x = π/2 atau x = 3π/2" },
-                  { key: "D", text: isGeometryQuestion ? "3 cm" : "x = 2π/3 atau x = 4π/3" },
-                  { key: "E", text: isGeometryQuestion ? "6 cm" : "Tidak ada nilai x yang memenuhi" },
-                ].map((opt) => {
-                  const isSelected = answers[currentQNum] === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => {
-                        selectAnswer(currentQNum, opt.key);
-                        setToastMessage(`Opsi ${opt.key} dipilih (Tersimpan otomatis)`);
-                      }}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 ${
-                        isSelected
-                          ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/30 text-sky-950 font-bold shadow-xs"
-                          : "bg-white border-slate-200 hover:border-sky-300 text-slate-700"
-                      }`}
-                    >
-                      <span
-                        className={`w-8 h-8 rounded-full font-extrabold text-sm flex items-center justify-center shrink-0 transition ${
+                {/* Gambar Soal (Jika Ada URL atau Diagram Geometri) */}
+                {currentQ.imageUrl ? (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <img
+                      src={currentQ.imageUrl}
+                      alt={`Gambar Soal Nomor ${currentQNum}`}
+                      className="max-h-64 rounded-lg object-contain"
+                    />
+                  </div>
+                ) : isGeometryQuestion ? (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <svg width="340" height="190" viewBox="0 0 390 235" fill="none" className="max-w-full">
+                      <polygon points="62,195 335,195 253,36" stroke="#1E293B" strokeWidth="2.5" fill="#FFFFFF" strokeLinejoin="round" strokeLinecap="round" />
+                      <text x="44" y="215" fill="#1E293B" fontWeight="800" fontSize="16">A</text>
+                      <text x="342" y="215" fill="#1E293B" fontWeight="800" fontSize="16">B</text>
+                      <text x="249" y="24" fill="#1E293B" fontWeight="800" fontSize="16">C</text>
+                      <text x="93" y="185" fill="#0284C7" fontWeight="700" fontSize="14">45°</text>
+                      <text x="298" y="185" fill="#0284C7" fontWeight="700" fontSize="14">75°</text>
+                      <g transform="translate(291, 90)">
+                        <path d="M0 9.5 L2.5 8 L6 14.5 L10.5 1 L26 1" stroke="#E11D48" strokeWidth="2" fill="none" />
+                        <text x="11.5" y="14" fill="#E11D48" fontWeight="800" fontSize="14">12 cm</text>
+                      </g>
+                    </svg>
+                  </div>
+                ) : null}
+
+                {/* Opsi Pilihan Jawaban Riil dari Database NeonDB */}
+                <div className="space-y-3">
+                  {currentQ.options.map((opt) => {
+                    const isSelected = answers[currentQNum] === opt.label;
+                    return (
+                      <button
+                        key={opt.id || opt.label}
+                        onClick={() => {
+                          selectAnswer(currentQNum, opt.label, opt.id);
+                          setToastMessage(`Opsi ${opt.label} dipilih (Tersimpan otomatis)`);
+                        }}
+                        className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 ${
                           isSelected
-                            ? "bg-sky-500 text-white shadow-xs"
-                            : "bg-slate-100 text-slate-600"
+                            ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/30 text-sky-950 font-bold shadow-xs"
+                            : "bg-white border-slate-200 hover:border-sky-300 text-slate-700"
                         }`}
                       >
-                        {opt.key}
-                      </span>
-                      <span className="flex-1 text-sm">{opt.text}</span>
-                      {isSelected && (
-                        <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
+                        <span
+                          className={`w-8 h-8 rounded-full font-extrabold text-sm flex items-center justify-center shrink-0 transition ${
+                            isSelected
+                              ? "bg-sky-500 text-white shadow-xs"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {opt.label}
+                        </span>
+                        <div className="flex-1 text-sm">
+                          <div>{opt.text}</div>
+                          {opt.imageUrl && (
+                            <img src={opt.imageUrl} alt={opt.label} className="mt-2 max-h-32 rounded" />
+                          )}
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* ========================================================
-              ACTION BAR BAWAH: Sebelumnya, Ragu-ragu, Selanjutnya / Submit
-             ======================================================== */}
+          {/* Action Bar Bawah */}
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-4 mt-8">
-            {/* Tombol Sebelumnya */}
             <button
               onClick={prevQuestion}
               disabled={currentQuestionIndex === 0}
@@ -351,21 +409,27 @@ export default function StudentExamView() {
               <span>Sebelumnya</span>
             </button>
 
-            {/* Tombol Ragu-Ragu */}
             <button
               onClick={() => toggleFlag(currentQNum)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border font-bold text-xs transition ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition ${
                 flagged[currentQNum]
-                  ? "bg-amber-400 text-amber-950 border-amber-500 shadow-xs"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-amber-50"
+                  ? "bg-amber-100 border-amber-300 text-amber-900"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <Flag className={`w-4 h-4 ${flagged[currentQNum] ? "fill-amber-950" : ""}`} />
-              <span>{flagged[currentQNum] ? "Tandai Ragu-Ragu (Aktif)" : "Ragu-Ragu"}</span>
+              <Flag className={`w-4 h-4 ${flagged[currentQNum] ? "fill-amber-500 text-amber-500" : ""}`} />
+              <span>{flagged[currentQNum] ? "Tandai Yakin" : "Ragu-Ragu"}</span>
             </button>
 
-            {/* Tombol Selanjutnya / Selesaikan Ujian */}
-            {currentQuestionIndex < totalQuestions - 1 ? (
+            {currentQuestionIndex === totalQuestions - 1 ? (
+              <button
+                onClick={() => setShowSummaryModal(true)}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/20"
+              >
+                <span>Selesai & Kumpulkan</span>
+                <Send className="w-4 h-4" />
+              </button>
+            ) : (
               <button
                 onClick={nextQuestion}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
@@ -373,165 +437,156 @@ export default function StudentExamView() {
                 <span>Selanjutnya</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
-            ) : (
-              <button
-                onClick={() => setShowSummaryModal(true)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition shadow-md shadow-emerald-500/20"
-              >
-                <span>Selesaikan Ujian</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
             )}
           </div>
         </main>
       </div>
 
-      {/* Floating Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 animate-slide-up">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Modal Panduan & Pintasan Keyboard */}
-      {showGuideModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      {/* Modal Ringkasan Sebelum Submit */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-sm">
-                Panduan Pintasan Keyboard (Shortcuts)
+              <h3 className="font-extrabold text-slate-800 text-base">
+                Konfirmasi Penyelesaian Ujian
               </h3>
-              <button onClick={() => setShowGuideModal(false)}>
-                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+              <button
+                onClick={() => setShowSummaryModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="py-4 space-y-2.5 text-xs text-slate-600">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                <span>Pilih Jawaban Opsi A, B, C, D, E</span>
-                <kbd className="px-2 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold">
-                  A / B / C / D / E
-                </kbd>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                <span>Soal Berikutnya / Sebelumnya</span>
-                <div className="flex gap-1">
-                  <kbd className="px-2 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold">←</kbd>
-                  <kbd className="px-2 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold">→</kbd>
+
+            <div className="py-5 space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-3 bg-sky-50 rounded-2xl border border-sky-100">
+                  <div className="text-xl font-extrabold text-sky-600">{answeredCount}</div>
+                  <div className="text-[10px] font-bold text-slate-500 mt-0.5">Terjawab</div>
+                </div>
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
+                  <div className="text-xl font-extrabold text-amber-600">
+                    {Object.values(flagged).filter(Boolean).length}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 mt-0.5">Ragu-Ragu</div>
+                </div>
+                <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                  <div className="text-xl font-extrabold text-rose-600">
+                    {totalQuestions - answeredCount}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 mt-0.5">Kosong</div>
                 </div>
               </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                <span>Tandai / Hapus Ragu-Ragu</span>
-                <kbd className="px-2 py-0.5 bg-white border border-slate-300 rounded font-mono font-bold">
-                  Spasi
-                </kbd>
+
+              <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  Pastikan Anda telah memeriksa kembali seluruh jawaban. Setelah dikumpulkan, Anda tidak dapat mengubah jawaban lagi.
+                </span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowSummaryModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition"
+              >
+                Cek Kembali
+              </button>
+              <button
+                onClick={async () => {
+                  setShowSummaryModal(false);
+                  await submitExam();
+                }}
+                disabled={isLoading}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white font-extrabold text-xs transition shadow-md shadow-emerald-600/20"
+              >
+                {isLoading ? "Mengirim Jawaban..." : "Ya, Kumpulkan Sekarang"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Ringkasan & Konfirmasi Submit */}
-      {showSummaryModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="text-center pb-4 border-b border-slate-100">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-2">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-slate-800 text-lg">
-                Konfirmasi Pengumpulan Ujian
-              </h3>
-              <p className="text-xs text-slate-500">
-                Periksa kembali ringkasan lembar pengerjaan Anda sebelum mengirim jawaban akhir.
-              </p>
+      {/* Modal Sukses Selesai Ujian */}
+      {isSubmitted && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-7 text-center shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
+            <h3 className="text-xl font-extrabold text-slate-800">
+              Ujian Berhasil Diselesaikan!
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 mb-5">
+              Jawaban Anda telah tersimpan secara permanen ke database sekolah.
+            </p>
 
-            {/* Statistik Ringkasan Pengerjaan */}
-            <div className="grid grid-cols-3 gap-3 my-5">
-              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
-                <div className="text-2xl font-extrabold text-emerald-700 tabular-digits">
-                  {answeredCount}
+            {scoreResult !== null && (
+              <div className="mb-6 p-4 rounded-2xl bg-sky-50 border border-sky-100">
+                <div className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+                  Nilai Akhir Ujian Anda
                 </div>
-                <div className="text-[11px] font-bold text-emerald-800 mt-1">
-                  Sudah Terjawab
+                <div className="text-4xl font-extrabold text-sky-600 font-mono mt-1 tabular-digits">
+                  {scoreResult}
                 </div>
-              </div>
-              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-center">
-                <div className="text-2xl font-extrabold text-amber-700 tabular-digits">
-                  {flaggedCount}
+                <div className="text-[11px] font-semibold text-slate-500 mt-1">
+                  Status: {scoreResult >= 75 ? "🎉 Tuntas (Memenuhi KKM)" : "⚠️ Belum Mencapai KKM (75)"}
                 </div>
-                <div className="text-[11px] font-bold text-amber-800 mt-1">
-                  Ragu-Ragu
-                </div>
-              </div>
-              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-center">
-                <div className="text-2xl font-extrabold text-rose-700 tabular-digits">
-                  {unansweredCount}
-                </div>
-                <div className="text-[11px] font-bold text-rose-800 mt-1">
-                  Belum Diisi
-                </div>
-              </div>
-            </div>
-
-            {unansweredCount > 0 && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  Masih terdapat <strong>{unansweredCount} butir soal</strong> yang belum terisi. Apakah Anda yakin ingin menyelesaikan ujian sekarang?
-                </span>
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSummaryModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs"
-              >
-                Cek Jawaban Kembali
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  submitExam();
-                  setShowSummaryModal(false);
-                }}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20"
-              >
-                Ya, Kumpulkan Jawaban
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem("cbt_active_sesi");
+                localStorage.removeItem("cbt_active_token");
+                router.push("/");
+              }}
+              className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition shadow-md"
+            >
+              Kembali ke Halaman Utama
+            </button>
           </div>
         </div>
       )}
 
-      {/* Screen Jika Sudah Dikumpulkan */}
-      {isSubmitted && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10" />
+      {/* Modal Panduan Pintasan Keyboard */}
+      {showGuideModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-800 text-sm">Pintasan Keyboard</h3>
+              <button onClick={() => setShowGuideModal(false)} className="text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-800">
-              Ujian Berhasil Diserahkan!
-            </h2>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Terima kasih, lembar jawaban Anda telah tersimpan dan terenkripsi dengan aman di server sekolah.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/admin"
-                className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition"
-              >
-                Kembali ke Dashboard
-              </Link>
+            <div className="py-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Pilih Jawaban</span>
+                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">A, B, C, D, E</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Soal Berikutnya</span>
+                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">Tombol ➔</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Soal Sebelumnya</span>
+                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">Tombol ⬅</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Tandai Ragu-ragu</span>
+                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">Spasi (Space)</span>
+              </div>
             </div>
+            <button
+              onClick={() => setShowGuideModal(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+            >
+              Tutup Panduan
+            </button>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
-

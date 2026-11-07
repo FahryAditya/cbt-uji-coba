@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiRequest } from "@/lib/api";
 
 export interface StudentProctor {
   id: string;
@@ -37,6 +38,7 @@ export interface ExamPackage {
   durationMinutes: number;
   totalQuestions: number;
   status: "DRAFT" | "AKTIF" | "SELESAI";
+  kkm?: number;
 }
 
 interface CBTAdminState {
@@ -45,8 +47,10 @@ interface CBTAdminState {
   setActiveTab: (tab: "proctoring" | "bank-soal" | "jadwal" | "nilai" | "settings") => void;
 
   // Active Session & Token
+  activeExamId: string;
+  setActiveExamId: (id: string) => void;
   activeToken: string;
-  regenerateToken: () => void;
+  regenerateToken: () => Promise<void>;
   activeExamTitle: string;
   setActiveExamTitle: (title: string) => void;
 
@@ -58,180 +62,343 @@ interface CBTAdminState {
   setFilterStatus: (status: "all" | "online" | "idle" | "flagged") => void;
 
   // Proctor Actions
-  resetStudentLogin: (studentId: string) => void;
-  addStudentTime: (studentId: string, minutes?: number) => void;
-  warnStudent: (studentId: string) => void;
+  resetStudentLogin: (studentId: string) => Promise<void>;
+  addStudentTime: (studentId: string, minutes?: number) => Promise<void>;
+  warnStudent: (studentId: string) => Promise<void>;
   broadcastMessage: string;
   setBroadcastMessage: (msg: string) => void;
+  sendBroadcast: (message: string) => Promise<void>;
 
-  // Class Management (Bisa pilih dan tambah kelas mandiri)
+  // Class Management
   availableClasses: string[];
-  addNewClass: (className: string) => void;
+  addNewClass: (className: string) => Promise<void>;
 
-  // Questions Management (Custom A-E)
+  // Questions Management
   questions: QuestionItem[];
-  addQuestion: (q: Omit<QuestionItem, "id" | "number">) => void;
-  updateQuestion: (id: string, q: Partial<QuestionItem>) => void;
-  deleteQuestion: (id: string) => void;
+  activeBankSoalId: string;
+  addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<void>;
+  deleteQuestion: (id: string) => Promise<void>;
 
   // Exams List
   exams: ExamPackage[];
-  createExam: (exam: Omit<ExamPackage, "id">) => void;
+  createExam: (exam: {
+    title: string;
+    subject: string;
+    targetClasses: string[];
+    durationMinutes: number;
+    token?: string;
+    totalQuestions?: number;
+    status?: "DRAFT" | "AKTIF" | "SELESAI";
+  }) => Promise<void>;
+
+  // Loading & Sync
+  isLoading: boolean;
+  fetchAllData: () => Promise<void>;
+  fetchProctoring: () => Promise<void>;
+  fetchExams: () => Promise<void>;
+  fetchClasses: () => Promise<void>;
+  fetchQuestions: (bankSoalId?: string) => Promise<void>;
 }
 
 export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   activeTab: "proctoring",
   setActiveTab: (tab) => set({ activeTab: tab }),
 
-  activeToken: "MAT-8492",
-  regenerateToken: () => {
-    const newToken = "MAT-" + Math.floor(1000 + Math.random() * 9000);
-    set({ activeToken: newToken });
+  activeExamId: "",
+  setActiveExamId: (id) => {
+    const exam = get().exams.find((e) => e.id === id);
+    set({
+      activeExamId: id,
+      activeExamTitle: exam ? exam.title : "",
+      activeToken: exam ? exam.token : "",
+    });
+    get().fetchProctoring();
   },
-  activeExamTitle: "Penilaian Akhir Semester (PAS) — Matematika Wajib XII",
+
+  activeToken: "",
+  regenerateToken: async () => {
+    const { activeExamId } = get();
+    if (!activeExamId) return;
+    try {
+      const res = await apiRequest<{ success: boolean; data: { token: string } }>(
+        `/api/ujian/${activeExamId}/token`,
+        { method: "PATCH" }
+      );
+      if (res.data?.token) {
+        set({ activeToken: res.data.token });
+        // Update exam in state
+        set((state) => ({
+          exams: state.exams.map((e) =>
+            e.id === activeExamId ? { ...e, token: res.data.token } : e
+          ),
+        }));
+      }
+    } catch (err) {
+      console.error("Gagal regenerate token:", err);
+    }
+  },
+
+  activeExamTitle: "",
   setActiveExamTitle: (title) => set({ activeExamTitle: title }),
 
-  // Default demo data matching Design/Dashboard.html
-  students: [
-    { id: "1", name: "Ahmad Fauzi", nis: "210401", class: "XII MIPA 1", status: "online", progress: 28, totalQ: 40, violations: 0, timeLeft: "01:14:20" },
-    { id: "2", name: "Bunga Citra Lestari", nis: "210402", class: "XII MIPA 1", status: "online", progress: 40, totalQ: 40, violations: 0, timeLeft: "00:00:00" },
-    { id: "3", name: "Dimas Anggara", nis: "210403", class: "XII MIPA 2", status: "idle", progress: 14, totalQ: 40, violations: 2, timeLeft: "01:28:45" },
-    { id: "4", name: "Eka Putri Rahayu", nis: "210404", class: "XII MIPA 1", status: "online", progress: 32, totalQ: 40, violations: 0, timeLeft: "00:45:10" },
-    { id: "5", name: "Fajar Pratama", nis: "210405", class: "XII MIPA 2", status: "online", progress: 38, totalQ: 40, violations: 1, timeLeft: "00:15:30" },
-    { id: "6", name: "Gita Gutawa", nis: "210406", class: "XII MIPA 3", status: "offline", progress: 8, totalQ: 40, violations: 0, timeLeft: "01:45:00" },
-    { id: "7", name: "Hafiz Suhendar", nis: "210407", class: "XII MIPA 1", status: "online", progress: 22, totalQ: 40, violations: 0, timeLeft: "01:05:00" },
-    { id: "8", name: "Indah Permatasari", nis: "210408", class: "XII MIPA 2", status: "online", progress: 30, totalQ: 40, violations: 0, timeLeft: "00:52:18" },
-  ],
+  // Clean empty initial state
+  students: [],
   searchQuery: "",
   setSearchQuery: (q) => set({ searchQuery: q }),
   filterStatus: "all",
   setFilterStatus: (status) => set({ filterStatus: status }),
 
-  resetStudentLogin: (studentId) =>
-    set((state) => ({
-      students: state.students.map((s) =>
-        s.id === studentId ? { ...s, status: "idle" } : s
-      ),
-    })),
+  resetStudentLogin: async (studentId: string) => {
+    const { activeExamId } = get();
+    try {
+      await apiRequest("/api/proctoring/reset-login", {
+        method: "POST",
+        body: JSON.stringify({ studentId, ujianId: activeExamId }),
+      });
+      set((state) => ({
+        students: state.students.map((s) =>
+          s.id === studentId ? { ...s, status: "idle" } : s
+        ),
+      }));
+    } catch (err) {
+      console.error("Gagal reset login:", err);
+    }
+  },
 
-  addStudentTime: (studentId, minutes = 10) =>
-    set((state) => ({
-      students: state.students.map((s) => {
-        if (s.id !== studentId) return s;
-        const parts = s.timeLeft.split(":").map(Number);
-        if (parts.length === 3) {
-          let totalSecs = parts[0] * 3600 + (parts[1] + minutes) * 60 + parts[2];
-          const h = String(Math.floor(totalSecs / 3600)).padStart(2, "0");
-          const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, "0");
-          const sec = String(totalSecs % 60).padStart(2, "0");
-          return { ...s, timeLeft: `${h}:${m}:${sec}` };
-        }
-        return s;
-      }),
-    })),
+  addStudentTime: async (studentId: string, minutes = 10) => {
+    const { activeExamId } = get();
+    try {
+      await apiRequest("/api/proctoring/add-time", {
+        method: "POST",
+        body: JSON.stringify({ studentId, ujianId: activeExamId, additionalMinutes: minutes }),
+      });
+      set((state) => ({
+        students: state.students.map((s) => {
+          if (s.id !== studentId) return s;
+          const parts = s.timeLeft.split(":").map(Number);
+          if (parts.length === 3) {
+            const totalSecs = parts[0] * 3600 + (parts[1] + minutes) * 60 + parts[2];
+            const h = String(Math.floor(totalSecs / 3600)).padStart(2, "0");
+            const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, "0");
+            const sec = String(totalSecs % 60).padStart(2, "0");
+            return { ...s, timeLeft: `${h}:${m}:${sec}` };
+          }
+          return s;
+        }),
+      }));
+    } catch (err) {
+      console.error("Gagal tambah waktu:", err);
+    }
+  },
 
-  warnStudent: (studentId) =>
-    set((state) => ({
-      students: state.students.map((s) =>
-        s.id === studentId ? { ...s, violations: s.violations + 1 } : s
-      ),
-    })),
+  warnStudent: async (studentId: string) => {
+    const { activeExamId } = get();
+    try {
+      await apiRequest("/api/proctoring/warn", {
+        method: "POST",
+        body: JSON.stringify({ studentId, ujianId: activeExamId, note: "Peringatan keluar tab ujian" }),
+      });
+      set((state) => ({
+        students: state.students.map((s) =>
+          s.id === studentId ? { ...s, violations: s.violations + 1 } : s
+        ),
+      }));
+    } catch (err) {
+      console.error("Gagal kirim peringatan:", err);
+    }
+  },
 
   broadcastMessage: "",
   setBroadcastMessage: (msg) => set({ broadcastMessage: msg }),
-
-  availableClasses: ["XII MIPA 1", "XII MIPA 2", "XII MIPA 3", "XII IPS 1", "XII IPS 2"],
-  addNewClass: (className) => {
-    const trimmed = className.trim();
-    if (!trimmed) return;
-    set((state) => {
-      if (state.availableClasses.includes(trimmed)) return state;
-      return { availableClasses: [...state.availableClasses, trimmed] };
-    });
+  sendBroadcast: async (message: string) => {
+    const { activeExamId } = get();
+    if (!message.trim()) return;
+    try {
+      await apiRequest("/api/proctoring/broadcast", {
+        method: "POST",
+        body: JSON.stringify({ ujianId: activeExamId, message }),
+      });
+      set({ broadcastMessage: "" });
+    } catch (err) {
+      console.error("Gagal kirim broadcast:", err);
+    }
   },
 
-  questions: [
-    {
-      id: "q1",
-      number: 1,
-      text: "Sebuah segitiga ABC memiliki sudut A = 45°, sudut B = 75°, dan panjang sisi yang berseberangan dengan sudut C adalah 12 cm. Berapakah panjang sisi AB?",
-      points: 2.5,
-      options: [
-        { label: "A", text: "6√2 cm", isCorrect: false },
-        { label: "B", text: "3√2 cm", isCorrect: true },
-        { label: "C", text: "12√2 cm", isCorrect: false },
-        { label: "D", text: "3 cm", isCorrect: false },
-        { label: "E", text: "6 cm", isCorrect: false },
-      ],
-    },
-    {
-      id: "q2",
-      number: 2,
-      text: "Jika fungsi f(x) = 2x³ - 9x² + 12x + 5, tentukan interval di mana grafik f(x) selalu naik!",
-      points: 2.5,
-      options: [
-        { label: "A", text: "x < 1 atau x > 2", isCorrect: true },
-        { label: "B", text: "1 < x < 2", isCorrect: false },
-        { label: "C", text: "x < -2 atau x > -1", isCorrect: false },
-        { label: "D", text: "-2 < x < 1", isCorrect: false },
-        { label: "E", text: "Semua nilai real x", isCorrect: false },
-      ],
-    },
-  ],
+  availableClasses: [],
+  addNewClass: async (className: string) => {
+    const trimmed = className.trim();
+    if (!trimmed) return;
+    try {
+      await apiRequest("/api/ujian/classes", {
+        method: "POST",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      set((state) => ({
+        availableClasses: state.availableClasses.includes(trimmed)
+          ? state.availableClasses
+          : [...state.availableClasses, trimmed],
+      }));
+    } catch (err) {
+      console.error("Gagal tambah kelas:", err);
+    }
+  },
 
-  addQuestion: (q) =>
-    set((state) => {
-      const newNumber = state.questions.length + 1;
-      const newQ: QuestionItem = {
-        ...q,
-        id: "q_" + Date.now(),
-        number: newNumber,
-      };
-      return { questions: [...state.questions, newQ] };
-    }),
+  questions: [],
+  activeBankSoalId: "",
+  addQuestion: async (q) => {
+    const { activeBankSoalId } = get();
+    if (!activeBankSoalId) return;
+    try {
+      const kunciOpsi = q.options.find((o) => o.isCorrect);
+      await apiRequest(`/api/bank-soal/${activeBankSoalId}/soal`, {
+        method: "POST",
+        body: JSON.stringify({
+          pertanyaan: q.text,
+          bobotNilai: q.points,
+          gambarUrl: q.imageUrl || null,
+          opsi: q.options.map((opt) => ({
+            label: opt.label,
+            teks: opt.text,
+            isKunci: opt.isCorrect,
+          })),
+        }),
+      });
+      // Refetch questions
+      await get().fetchQuestions(activeBankSoalId);
+    } catch (err) {
+      console.error("Gagal simpan soal:", err);
+    }
+  },
 
-  updateQuestion: (id, updated) =>
-    set((state) => ({
-      questions: state.questions.map((q) => (q.id === id ? { ...q, ...updated } : q)),
-    })),
+  deleteQuestion: async (id: string) => {
+    try {
+      await apiRequest(`/api/bank-soal/soal/${id}`, {
+        method: "DELETE",
+      });
+      set((state) => ({
+        questions: state.questions
+          .filter((q) => q.id !== id)
+          .map((q, idx) => ({ ...q, number: idx + 1 })),
+      }));
+    } catch (err) {
+      console.error("Gagal hapus soal:", err);
+    }
+  },
 
-  deleteQuestion: (id) =>
-    set((state) => ({
-      questions: state.questions
-        .filter((q) => q.id !== id)
-        .map((q, idx) => ({ ...q, number: idx + 1 })),
-    })),
+  exams: [],
+  createExam: async (examData) => {
+    try {
+      const res = await apiRequest<{ success: boolean; data: any }>("/api/ujian", {
+        method: "POST",
+        body: JSON.stringify(examData),
+      });
+      if (res.data) {
+        await get().fetchExams();
+      }
+    } catch (err) {
+      console.error("Gagal buat ujian:", err);
+    }
+  },
 
-  exams: [
-    {
-      id: "ex1",
-      title: "Penilaian Akhir Semester (PAS) — Matematika Wajib XII",
-      subject: "Matematika",
-      targetClasses: ["XII MIPA 1", "XII MIPA 2"],
-      token: "MAT-8492",
-      durationMinutes: 120,
-      totalQuestions: 40,
-      status: "AKTIF",
-    },
-    {
-      id: "ex2",
-      title: "Kuis Harian Persamaan Diferensial",
-      subject: "Matematika",
-      targetClasses: ["XII MIPA 1"],
-      token: "MTH-3910",
-      durationMinutes: 45,
-      totalQuestions: 15,
-      status: "DRAFT",
-    },
-  ],
+  isLoading: false,
 
-  createExam: (exam) =>
-    set((state) => {
-      const newExam: ExamPackage = {
-        ...exam,
-        id: "ex_" + Date.now(),
-      };
-      return { exams: [newExam, ...state.exams] };
-    }),
+  fetchAllData: async () => {
+    set({ isLoading: true });
+    try {
+      await Promise.allSettled([
+        get().fetchExams(),
+        get().fetchClasses(),
+        get().fetchProctoring(),
+      ]);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  fetchExams: async () => {
+    try {
+      const res = await apiRequest<{ success: boolean; data: any[] }>("/api/ujian");
+      if (res.data) {
+        const formatted: ExamPackage[] = res.data.map((e) => ({
+          id: e.id,
+          title: e.judul,
+          subject: e.mapel?.nama || "Umum",
+          targetClasses: e.targetKelas?.map((k: any) => k.kelas?.nama) || [],
+          token: e.token || "",
+          durationMinutes: e.durasiMenit || 60,
+          totalQuestions: e.bankSoal?.soalList?.length || 0,
+          status: e.status || "AKTIF",
+          kkm: e.kkm || 75,
+        }));
+        set({ exams: formatted });
+
+        // Set default active exam if none selected
+        if (!get().activeExamId && formatted.length > 0) {
+          const first = formatted[0];
+          set({
+            activeExamId: first.id,
+            activeExamTitle: first.title,
+            activeToken: first.token,
+          });
+          // Also fetch questions for first exam's bank soal if present
+          if (res.data[0]?.bankSoalId) {
+            set({ activeBankSoalId: res.data[0].bankSoalId });
+            get().fetchQuestions(res.data[0].bankSoalId);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Gagal fetch exams:", err);
+    }
+  },
+
+  fetchClasses: async () => {
+    try {
+      const res = await apiRequest<{ success: boolean; data: string[] }>("/api/ujian/classes/all");
+      if (res.data) {
+        set({ availableClasses: res.data });
+      }
+    } catch (err) {
+      console.error("Gagal fetch classes:", err);
+    }
+  },
+
+  fetchProctoring: async () => {
+    const { activeExamId } = get();
+    try {
+      const path = activeExamId ? `/api/proctoring/${activeExamId}` : "/api/proctoring";
+      const res = await apiRequest<{ success: boolean; data: any }>(path);
+      if (res.data?.students) {
+        set({ students: res.data.students });
+      }
+    } catch (err) {
+      console.error("Gagal fetch proctoring:", err);
+    }
+  },
+
+  fetchQuestions: async (bankSoalId?: string) => {
+    const targetId = bankSoalId || get().activeBankSoalId;
+    if (!targetId) return;
+    try {
+      const res = await apiRequest<{ success: boolean; data: any[] }>(`/api/bank-soal/${targetId}/soal`);
+      if (res.data) {
+        const formatted: QuestionItem[] = res.data.map((q, idx) => ({
+          id: q.id,
+          number: q.nomorUrut || idx + 1,
+          text: q.pertanyaan,
+          imageUrl: q.gambarUrl,
+          points: q.bobotNilai || 1,
+          options: (q.pilihanJawaban || []).map((opt: any) => ({
+            label: opt.label,
+            text: opt.teks,
+            imageUrl: opt.gambarUrl,
+            isCorrect: Boolean(opt.isKunci),
+          })),
+        }));
+        set({ questions: formatted, activeBankSoalId: targetId });
+      }
+    } catch (err) {
+      console.error("Gagal fetch questions:", err);
+    }
+  },
 }));
-

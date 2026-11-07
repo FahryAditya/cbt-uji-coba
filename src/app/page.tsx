@@ -1,31 +1,85 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import {
   GraduationCap,
-  ShieldCheck,
   User,
   Key,
   ArrowRight,
-  Sparkles,
-  BookOpen,
+  AlertCircle,
+  Loader2,
+  Info,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api";
+import { useCBTExamStore } from "@/stores/cbt-exam";
 
 export default function HomePage() {
   const router = useRouter();
   const [role, setRole] = useState<"siswa" | "admin">("siswa");
-  const [tokenInput, setTokenInput] = useState("MAT-8492");
-  const [username, setUsername] = useState("210401889");
-  const [password, setPassword] = useState("••••••••");
+  const [tokenInput, setTokenInput] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { startExamWithToken } = useCBTExamStore();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === "admin") {
-      router.push("/admin");
-    } else {
-      router.push("/ujian");
+    setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        message?: string;
+        data?: {
+          token: string;
+          user: {
+            id: string;
+            username: string;
+            nama: string;
+            role: "ADMIN" | "GURU" | "SISWA";
+          };
+        };
+      }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+          tokenUjian: role === "siswa" ? tokenInput.trim() : undefined,
+        }),
+      });
+
+      if (!res.data?.token) {
+        throw new Error(res.message || "Gagal melakukan autentikasi");
+      }
+
+      // Simpan session ke localStorage
+      localStorage.setItem("cbt_token", res.data.token);
+      localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
+
+      if (role === "admin") {
+        if (res.data.user.role === "SISWA") {
+          throw new Error("Akun siswa tidak memiliki hak akses Guru/Admin.");
+        }
+        router.push("/admin");
+      } else {
+        // Untuk siswa, langsung mulai sesi ujian dengan token yang diinput
+        if (!tokenInput.trim()) {
+          throw new Error("Token ujian wajib diisi untuk siswa.");
+        }
+        const examStart = await startExamWithToken(tokenInput.trim());
+        if (!examStart.success) {
+          throw new Error(examStart.message || "Token ujian tidak valid atau sesi belum aktif.");
+        }
+        router.push("/ujian");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Terjadi kesalahan saat masuk.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -54,7 +108,10 @@ export default function HomePage() {
           <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl mb-6">
             <button
               type="button"
-              onClick={() => setRole("siswa")}
+              onClick={() => {
+                setRole("siswa");
+                setErrorMessage(null);
+              }}
               className={`py-2 text-xs font-bold rounded-xl transition ${
                 role === "siswa"
                   ? "bg-white text-slate-800 shadow-xs"
@@ -65,7 +122,10 @@ export default function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => setRole("admin")}
+              onClick={() => {
+                setRole("admin");
+                setErrorMessage(null);
+              }}
               className={`py-2 text-xs font-bold rounded-xl transition ${
                 role === "admin"
                   ? "bg-white text-slate-800 shadow-xs"
@@ -75,6 +135,14 @@ export default function HomePage() {
               Guru & Admin
             </button>
           </div>
+
+          {/* Alert Error */}
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             {role === "siswa" ? (
@@ -90,7 +158,7 @@ export default function HomePage() {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Masukkan 10 digit NISN..."
+                      placeholder="Contoh: 210401889"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
                       required
                     />
@@ -108,7 +176,7 @@ export default function HomePage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Masukkan password..."
+                      placeholder="Masukkan password akun..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-sky-500"
                       required
                     />
@@ -119,15 +187,12 @@ export default function HomePage() {
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-600 flex items-center justify-between">
                     <span>Token Ujian (Dari Pengawas)</span>
-                    <span className="text-[10px] text-sky-600 font-semibold">
-                      Contoh: MAT-8492
-                    </span>
                   </label>
                   <input
                     type="text"
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
-                    placeholder="MAT-XXXX"
+                    placeholder="Contoh: MAT-8492"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-extrabold text-sky-600 tracking-wider uppercase focus:outline-none focus:border-sky-500"
                     required
                   />
@@ -144,7 +209,9 @@ export default function HomePage() {
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
                       type="text"
-                      defaultValue="admin@sekolah.sch.id"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Contoh: admin atau guru"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
                       required
                     />
@@ -160,7 +227,9 @@ export default function HomePage() {
                     <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
                       type="password"
-                      defaultValue="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Masukkan password admin..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-sky-500"
                       required
                     />
@@ -172,21 +241,36 @@ export default function HomePage() {
             {/* Tombol Masuk */}
             <button
               type="submit"
-              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-extrabold text-xs transition shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 disabled:opacity-70 text-white font-extrabold text-xs transition shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
             >
-              <span>{role === "siswa" ? "Mulai Pengerjaan Ujian" : "Masuk ke Dashboard Guru"}</span>
-              <ArrowRight className="w-4 h-4" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memverifikasi Akun...</span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {role === "siswa"
+                      ? "Mulai Pengerjaan Ujian"
+                      : "Masuk ke Dashboard Guru"}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 
-          {/* Quick Links Demo */}
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
-            <Link href="/admin" className="hover:text-sky-600 transition">
-              Langsung Dashboard Admin →
-            </Link>
-            <Link href="/ujian" className="hover:text-sky-600 transition">
-              Langsung Layar Siswa →
-            </Link>
+          {/* Info Petunjuk Akun Database NeonDB */}
+          <div className="mt-5 pt-4 border-t border-slate-100 flex items-start gap-2 text-[11px] text-slate-400">
+            <Info className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
+            <div>
+              <span>Akun default seeder NeonDB: </span>
+              <span className="font-mono font-semibold text-slate-600">
+                {role === "siswa" ? "210401889 / siswa123 (Token: MAT-8492)" : "admin / admin123"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

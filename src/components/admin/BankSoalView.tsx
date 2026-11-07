@@ -243,7 +243,12 @@ export default function BankSoalView() {
 
       {/* Daftar Soal yang Sudah Terdaftar */}
       <div className="space-y-4">
-        {questions.map((q) => (
+        {questions.length === 0 ? (
+          <div className="soft-card p-12 text-center text-slate-400 text-xs font-semibold">
+            Belum ada butir soal dalam bank soal ini. Klik "+ Tambah Soal Baru" untuk mulai menyusun soal.
+          </div>
+        ) : (
+          questions.map((q) => (
           <div key={q.id} className="soft-card p-6">
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
@@ -298,7 +303,7 @@ export default function BankSoalView() {
               ))}
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );

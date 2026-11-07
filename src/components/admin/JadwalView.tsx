@@ -244,8 +244,13 @@ export default function JadwalView() {
       )}
 
       {/* Daftar Paket Ujian */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {exams.map((ex) => (
+      {exams.length === 0 ? (
+        <div className="soft-card p-12 text-center text-slate-400 text-xs font-semibold">
+          Belum ada jadwal ujian yang terdaftar. Klik "+ Buat Ujian Baru" di atas untuk membuat ujian baru.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {exams.map((ex) => (
           <div key={ex.id} className="soft-card p-5 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -300,6 +305,7 @@ export default function JadwalView() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

@@ -1,97 +1,242 @@
 import { create } from "zustand";
+import { apiRequest } from "@/lib/api";
+
+export interface StudentExamOption {
+  id: string;
+  label: string; // "A", "B", "C", "D", "E"
+  text: string;
+  imageUrl?: string | null;
+}
 
 export interface StudentExamQuestion {
-  number: number;
   id: string;
+  number: number;
   text: string;
   points: number;
-  hasDiagram?: boolean;
-  options: {
-    label: string; // "A", "B", "C", "D", "E"
-    text: string;
-  }[];
+  imageUrl?: string | null;
+  options: StudentExamOption[];
 }
 
 interface CBTExamState {
+  // Session & Exam Info
+  sesiId: string;
+  ujianId: string;
+  examTitle: string;
+  studentName: string;
+  studentNIS: string;
+  studentClass: string;
+
+  // Questions & Navigation
+  questions: StudentExamQuestion[];
   currentQuestionIndex: number;
   setCurrentQuestionIndex: (idx: number) => void;
   nextQuestion: () => void;
   prevQuestion: () => void;
 
-  answers: Record<number, string>; // { [questionNumber]: "A" | "B" | ... }
-  selectAnswer: (qNum: number, optionLabel: string) => void;
-
-  flagged: Record<number, boolean>; // { [questionNumber]: true }
+  // Answers & Flags
+  answers: Record<number, string>; // { [questionNumber]: "A" | "B" ... }
+  answerIds: Record<number, string>; // { [questionNumber]: "pilihanId" }
+  selectAnswer: (qNum: number, optionLabel: string, optionId?: string) => Promise<void>;
+  flagged: Record<number, boolean>;
   toggleFlag: (qNum: number) => void;
 
+  // Timer & Violations
   secondsRemaining: number;
   decrementTimer: () => void;
   setTimer: (secs: number) => void;
-
   violations: number;
-  incrementViolations: () => void;
+  incrementViolations: () => Promise<void>;
 
+  // Submission
   isSubmitted: boolean;
-  submitExam: () => void;
+  scoreResult: number | null;
+  submitExam: () => Promise<void>;
+  isLoading: boolean;
 
-  // Student profile
-  studentName: string;
-  studentNIS: string;
-  studentClass: string;
-  examTitle: string;
+  // Actions
+  initExamFromStorage: () => Promise<boolean>;
+  startExamWithToken: (token: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 export const useCBTExamStore = create<CBTExamState>((set, get) => ({
-  currentQuestionIndex: 6, // default question 7 (index 6) matching design
+  sesiId: "",
+  ujianId: "",
+  examTitle: "",
+  studentName: "",
+  studentNIS: "",
+  studentClass: "",
+
+  questions: [],
+  currentQuestionIndex: 0,
   setCurrentQuestionIndex: (idx) => set({ currentQuestionIndex: idx }),
   nextQuestion: () =>
     set((state) => ({
-      currentQuestionIndex: Math.min(state.currentQuestionIndex + 1, 39),
+      currentQuestionIndex: Math.min(
+        state.currentQuestionIndex + 1,
+        Math.max(0, state.questions.length - 1)
+      ),
     })),
   prevQuestion: () =>
     set((state) => ({
       currentQuestionIndex: Math.max(state.currentQuestionIndex - 1, 0),
     })),
 
-  answers: {
-    1: "A",
-    2: "C",
-    3: "B",
-    4: "D",
-    5: "A",
-    6: "B",
-    7: "B",
-  },
-  selectAnswer: (qNum, optionLabel) =>
+  // Clean empty initial state
+  answers: {},
+  answerIds: {},
+  flagged: {},
+  secondsRemaining: 0,
+  violations: 0,
+  isSubmitted: false,
+  scoreResult: null,
+  isLoading: false,
+
+  selectAnswer: async (qNum, optionLabel, optionId) => {
+    // 1. Optimistic Update di UI
     set((state) => ({
       answers: { ...state.answers, [qNum]: optionLabel },
-    })),
+      answerIds: optionId ? { ...state.answerIds, [qNum]: optionId } : state.answerIds,
+    }));
 
-  flagged: {
-    4: true, // example flagged question
+    // 2. Autosave ke Backend API
+    const { sesiId, questions } = get();
+    const currentQ = questions.find((q) => q.number === qNum);
+    if (!sesiId || !currentQ) return;
+
+    try {
+      await apiRequest("/api/exam/answer", {
+        method: "PUT",
+        body: JSON.stringify({
+          sesiId,
+          soalId: currentQ.id,
+          pilihanId: optionId || null,
+          isRaguRagu: Boolean(get().flagged[qNum]),
+        }),
+      });
+    } catch (err) {
+      console.warn("Autosave gagal, akan disimpan lokal:", err);
+    }
   },
+
   toggleFlag: (qNum) =>
     set((state) => ({
       flagged: { ...state.flagged, [qNum]: !state.flagged[qNum] },
     })),
 
-  secondsRemaining: 6621, // 01:50:21
   decrementTimer: () =>
-    set((state) => ({
-      secondsRemaining: Math.max(0, state.secondsRemaining - 1),
-    })),
+    set((state) => {
+      const nextTime = Math.max(0, state.secondsRemaining - 1);
+      if (nextTime === 0 && !state.isSubmitted && state.questions.length > 0) {
+        // Otomatis submit jika waktu habis
+        setTimeout(() => get().submitExam(), 0);
+      }
+      return { secondsRemaining: nextTime };
+    }),
+
   setTimer: (secs) => set({ secondsRemaining: secs }),
 
-  violations: 0,
-  incrementViolations: () =>
-    set((state) => ({ violations: state.violations + 1 })),
+  incrementViolations: async () => {
+    set((state) => ({ violations: state.violations + 1 }));
+    const { sesiId } = get();
+    if (!sesiId) return;
+    try {
+      await apiRequest("/api/exam/violation", {
+        method: "POST",
+        body: JSON.stringify({ sesiId }),
+      });
+    } catch {
+      // ignore
+    }
+  },
 
-  isSubmitted: false,
-  submitExam: () => set({ isSubmitted: true }),
+  submitExam: async () => {
+    const { sesiId } = get();
+    if (!sesiId) return;
+    set({ isLoading: true });
+    try {
+      const res = await apiRequest<{ success: boolean; data: any }>("/api/exam/submit", {
+        method: "POST",
+        body: JSON.stringify({ sesiId }),
+      });
+      set({
+        isSubmitted: true,
+        scoreResult: res.data?.score ?? null,
+      });
+    } catch (err) {
+      console.error("Gagal submit ujian:", err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-  studentName: "Muhammad Farhan Pratama",
-  studentNIS: "210401889",
-  studentClass: "XII MIPA 1",
-  examTitle: "Penilaian Akhir Semester Ganjil — Matematika Peminatan",
+  startExamWithToken: async (token: string) => {
+    set({ isLoading: true });
+    try {
+      const res = await apiRequest<{ success: boolean; message?: string; data: any }>(
+        "/api/exam/start",
+        {
+          method: "POST",
+          body: JSON.stringify({ token: token.trim() }),
+        }
+      );
+
+      if (res.data) {
+        const d = res.data;
+        const questionsList: StudentExamQuestion[] = (d.questions || []).map((q: any) => ({
+          id: q.id,
+          number: q.number,
+          text: q.text,
+          points: q.points || 1,
+          imageUrl: q.imageUrl,
+          options: (q.options || []).map((opt: any) => ({
+            id: opt.id,
+            label: opt.label,
+            text: opt.text,
+            imageUrl: opt.imageUrl,
+          })),
+        }));
+
+        const userStr = typeof window !== "undefined" ? localStorage.getItem("cbt_user") : null;
+        const userObj = userStr ? JSON.parse(userStr) : null;
+
+        set({
+          sesiId: d.sesiId,
+          ujianId: d.ujianId,
+          examTitle: d.examTitle || "Ujian Berbasis Komputer",
+          questions: questionsList,
+          secondsRemaining: (d.durationMinutes || 60) * 60,
+          studentName: userObj?.nama || "Siswa Peserta",
+          studentNIS: userObj?.siswaProfile?.nisn || userObj?.username || "-",
+          studentClass: userObj?.siswaProfile?.kelas?.nama || "XII",
+          isSubmitted: false,
+          currentQuestionIndex: 0,
+          answers: {},
+          flagged: {},
+        });
+
+        // Simpan sesiId aktif ke localStorage
+        if (typeof window !== "undefined") {
+          localStorage.setItem("cbt_active_sesi", d.sesiId);
+          localStorage.setItem("cbt_active_token", token.trim());
+        }
+
+        return { success: true };
+      }
+      return { success: false, message: res.message || "Gagal memulai ujian" };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "Koneksi ke server gagal" };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  initExamFromStorage: async () => {
+    if (typeof window === "undefined") return false;
+    const token = localStorage.getItem("cbt_active_token");
+    if (token) {
+      const res = await get().startExamWithToken(token);
+      return res.success;
+    }
+    return false;
+  },
 }));
-
