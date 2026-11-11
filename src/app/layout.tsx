@@ -10,8 +10,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CBT Sekolah - Ujian Berbasis Komputer",
-  description: "Platform Ujian Berbasis Komputer modern untuk sekolah (Admin, Guru, dan Siswa)",
+  title: "Ujian Pendidikan Pancasila - CBT",
+  description: "Platform Ujian Berbasis Komputer Pendidikan Pancasila (Admin, Guru, dan Siswa)",
 };
 
 export default function RootLayout({

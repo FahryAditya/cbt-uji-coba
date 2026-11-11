@@ -144,7 +144,7 @@ export default function HomePage() {
             <GraduationCap className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">
-            CBT SEKOLAH
+            Ujian Pendidikan Pancasila
           </h1>
           <p className="text-xs text-sky-200/70 mt-1">
             Sistem Ujian Berbasis Komputer & Live Proctoring

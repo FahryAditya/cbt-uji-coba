@@ -83,13 +83,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
                 <GraduationCap className="w-5 h-5" />
               </div>
-              <div>
-                <h1 className="font-extrabold text-slate-800 text-sm tracking-tight leading-none">
-                  CBT Sekolah
+              <div className="min-w-0">
+                <h1 className="font-extrabold text-slate-800 text-sm tracking-tight leading-snug">
+                  Ujian Pendidikan Pancasila
                 </h1>
-                <span className="text-[11px] font-semibold text-slate-400">
-                  Admin & Proctor Portal
-                </span>
               </div>
             </div>
             <button
