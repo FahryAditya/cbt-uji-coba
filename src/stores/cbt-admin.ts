@@ -176,7 +176,7 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     completedCount: 0,
     avgProgress: 0,
     totalViolations: 0,
-    globalTimer: "01:50:21",
+    globalTimer: "00:00:00",
   },
 
   unlockStudent: async (studentId: string, sesiId?: string) => {

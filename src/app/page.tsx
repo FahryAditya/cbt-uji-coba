@@ -202,7 +202,7 @@ export default function HomePage() {
                     type="text"
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
-                    placeholder="Contoh: MAT-8492"
+                    placeholder="Contoh: PAN-2026"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-extrabold text-sky-600 tracking-wider uppercase focus:outline-none focus:border-sky-500"
                     required
                   />

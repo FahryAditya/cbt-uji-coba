@@ -22,8 +22,8 @@ export default function JadwalView() {
 
   const [isCreating, setIsCreating] = useState(false);
   const [examTitle, setExamTitle] = useState("");
-  const [subject, setSubject] = useState("Matematika");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>(["XII MIPA 1"]);
+  const [subject, setSubject] = useState("");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [newClassInput, setNewClassInput] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(90);
   const [tokenInput, setTokenInput] = useState("EXM-" + Math.floor(1000 + Math.random() * 9000));
@@ -106,7 +106,7 @@ export default function JadwalView() {
               </label>
               <input
                 type="text"
-                placeholder="Contoh: Penilaian Harian Matematika Wajib Bab 3 atau PTS Semester Ganjil"
+                placeholder="Contoh: Penilaian Akhir Semester (PAS) — Pendidikan Pancasila XII"
                 value={examTitle}
                 onChange={(e) => setExamTitle(e.target.value)}
                 className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
@@ -121,6 +121,7 @@ export default function JadwalView() {
               </label>
               <input
                 type="text"
+                placeholder="Contoh: Pendidikan Pancasila"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"

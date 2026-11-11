@@ -54,7 +54,7 @@ export default function AdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Nama Sekolah</label>
                   <input
                     type="text"
-                    defaultValue="SMA Negeri 1 Prestasi Bangsa"
+                    placeholder="Masukkan nama sekolah..."
                     className="w-full p-2.5 rounded-xl border border-slate-200"
                   />
                 </div>
@@ -62,7 +62,7 @@ export default function AdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">NPSN</label>
                   <input
                     type="text"
-                    defaultValue="20104892"
+                    placeholder="Masukkan NPSN sekolah..."
                     className="w-full p-2.5 rounded-xl border border-slate-200 font-mono"
                   />
                 </div>
