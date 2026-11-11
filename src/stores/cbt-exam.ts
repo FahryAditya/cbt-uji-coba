@@ -106,18 +106,21 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     }));
 
     // 2. Autosave ke Backend API
-    const { sesiId, questions } = get();
+    const { sesiId, ujianId, questions } = get();
     const currentQ = questions.find((q) => q.number === qNum);
-    if (!sesiId || !currentQ) return;
+    if (!sesiId || !ujianId || !currentQ) return;
 
     try {
       await apiRequest("/api/exam/answer", {
         method: "PUT",
         body: JSON.stringify({
           sesiId,
+          ujianId,
           soalId: currentQ.id,
+          questionNumber: qNum,
           pilihanId: optionId || null,
-          isRaguRagu: Boolean(get().flagged[qNum]),
+          selectedOption: optionLabel,
+          isFlagged: Boolean(get().flagged[qNum]),
         }),
       });
     } catch (err: any) {
@@ -128,10 +131,29 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     }
   },
 
-  toggleFlag: (qNum) =>
+  toggleFlag: (qNum) => {
+    const nextFlagged = !get().flagged[qNum];
     set((state) => ({
-      flagged: { ...state.flagged, [qNum]: !state.flagged[qNum] },
-    })),
+      flagged: { ...state.flagged, [qNum]: nextFlagged },
+    }));
+
+    const { sesiId, ujianId, questions, answers, answerIds } = get();
+    const currentQ = questions.find((q) => q.number === qNum);
+    if (!sesiId || !ujianId || !currentQ) return;
+
+    apiRequest("/api/exam/answer", {
+      method: "PUT",
+      body: JSON.stringify({
+        sesiId,
+        ujianId,
+        soalId: currentQ.id,
+        questionNumber: qNum,
+        pilihanId: answerIds[qNum] || null,
+        selectedOption: answers[qNum] || undefined,
+        isFlagged: nextFlagged,
+      }),
+    }).catch(() => {});
+  },
 
   decrementTimer: () =>
     set((state) => {
@@ -195,13 +217,13 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   },
 
   submitExam: async () => {
-    const { sesiId } = get();
-    if (!sesiId) return;
+    const { sesiId, ujianId } = get();
+    if (!sesiId || !ujianId) return;
     set({ isLoading: true });
     try {
       const res = await apiRequest<{ success: boolean; data: any }>("/api/exam/submit", {
         method: "POST",
-        body: JSON.stringify({ sesiId }),
+        body: JSON.stringify({ sesiId, ujianId }),
       });
       set({
         isSubmitted: true,

@@ -16,7 +16,17 @@ import {
 } from "lucide-react";
 
 export default function BankSoalView() {
-  const { questions, addQuestion, updateQuestion, deleteQuestion } = useCBTAdminStore();
+  const {
+    questions,
+    bankSoalList,
+    activeBankSoalId,
+    setActiveBankSoalId,
+    addQuestion,
+    updateQuestion,
+    deleteQuestion,
+  } = useCBTAdminStore();
+
+  const activeBank = bankSoalList.find((b) => b.id === activeBankSoalId);
 
   const [isCreating, setIsCreating] = useState(false);
   const [questionText, setQuestionText] = useState("");
@@ -157,12 +167,27 @@ export default function BankSoalView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">
-            Bank Soal Aktif — Matematika Wajib XII
+            Bank Soal Aktif — {activeBank?.mapel || "Memuat..."}
           </span>
-          <h2 className="text-xl font-extrabold text-slate-800 mt-1">
-            Kelola Butir Soal Ujian
-          </h2>
-          <p className="text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-3 mt-1.5">
+            <h2 className="text-xl font-extrabold text-slate-800">
+              Kelola Butir Soal Ujian
+            </h2>
+            {bankSoalList.length > 0 && (
+              <select
+                value={activeBankSoalId}
+                onChange={(e) => setActiveBankSoalId(e.target.value)}
+                className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-1.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                {bankSoalList.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.judul} ({b.totalSoal} Soal)
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
             Total {questions.length} butir soal terdaftar dalam paket ini.
           </p>
         </div>

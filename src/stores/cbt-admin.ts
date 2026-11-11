@@ -91,7 +91,9 @@ interface CBTAdminState {
 
   // Questions Management
   questions: QuestionItem[];
+  bankSoalList: { id: string; kode: string; judul: string; mapel: string; totalSoal: number }[];
   activeBankSoalId: string;
+  setActiveBankSoalId: (id: string) => void;
   addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<void>;
   updateQuestion: (id: string, q: Partial<QuestionItem>) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
@@ -113,6 +115,7 @@ interface CBTAdminState {
   fetchAllData: () => Promise<void>;
   fetchProctoring: () => Promise<void>;
   fetchExams: () => Promise<void>;
+  fetchBankSoal: () => Promise<void>;
   fetchClasses: () => Promise<void>;
   fetchQuestions: (bankSoalId?: string) => Promise<void>;
 }
@@ -311,22 +314,27 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   },
 
   questions: [],
+  bankSoalList: [],
   activeBankSoalId: "",
+  setActiveBankSoalId: (id: string) => {
+    set({ activeBankSoalId: id });
+    get().fetchQuestions(id);
+  },
   addQuestion: async (q) => {
     const { activeBankSoalId } = get();
     if (!activeBankSoalId) return;
     try {
-      const kunciOpsi = q.options.find((o) => o.isCorrect);
       await apiRequest(`/api/bank-soal/${activeBankSoalId}/soal`, {
         method: "POST",
         body: JSON.stringify({
           pertanyaan: q.text,
           bobotNilai: q.points,
           gambarUrl: q.imageUrl || null,
-          opsi: q.options.map((opt) => ({
+          options: q.options.map((opt) => ({
             label: opt.label,
-            teks: opt.text,
-            isKunci: opt.isCorrect,
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+            imageUrl: opt.imageUrl || null,
           })),
         }),
       });
@@ -399,11 +407,28 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     try {
       await Promise.allSettled([
         get().fetchExams(),
+        get().fetchBankSoal(),
         get().fetchClasses(),
         get().fetchProctoring(),
       ]);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchBankSoal: async () => {
+    try {
+      const res = await apiRequest<{ success: boolean; data: any[] }>("/api/bank-soal");
+      if (res.data && Array.isArray(res.data)) {
+        set({ bankSoalList: res.data });
+        if (!get().activeBankSoalId && res.data.length > 0) {
+          const firstBankId = res.data[0].id;
+          set({ activeBankSoalId: firstBankId });
+          await get().fetchQuestions(firstBankId);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal fetch bank soal:", err);
     }
   },
 
@@ -413,14 +438,18 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       if (res.data) {
         const formatted: ExamPackage[] = res.data.map((e) => ({
           id: e.id,
-          title: e.judul,
-          subject: e.mapel?.nama || "Umum",
-          targetClasses: e.targetKelas?.map((k: any) => k.kelas?.nama) || [],
+          title: e.title || e.judul || "Ujian",
+          subject: e.subject || e.mapel?.nama || "Umum",
+          targetClasses:
+            e.targetClasses ||
+            e.targetKelas?.map((k: any) => k.kelas?.nama) ||
+            [],
           token: e.token || "",
-          durationMinutes: e.durasiMenit || 60,
-          totalQuestions: e.bankSoal?.soalList?.length || 0,
+          durationMinutes: e.durationMinutes ?? e.durasiMenit ?? 60,
+          totalQuestions:
+            e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
           status: e.status || "AKTIF",
-          kkm: e.kkm || 75,
+          kkm: e.kkm ?? 75,
         }));
         set({ exams: formatted });
 
@@ -432,7 +461,6 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
             activeExamTitle: first.title,
             activeToken: first.token,
           });
-          // Also fetch questions for first exam's bank soal if present
           if (res.data[0]?.bankSoalId) {
             set({ activeBankSoalId: res.data[0].bankSoalId });
             get().fetchQuestions(res.data[0].bankSoalId);
@@ -485,11 +513,11 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           text: q.pertanyaan,
           imageUrl: q.gambarUrl,
           points: q.bobotNilai || 1,
-          options: (q.pilihanJawaban || []).map((opt: any) => ({
+          options: (q.options || q.pilihanJawaban || []).map((opt: any) => ({
             label: opt.label,
-            text: opt.teks,
-            imageUrl: opt.gambarUrl,
-            isCorrect: Boolean(opt.isKunci),
+            text: opt.text ?? opt.teks ?? "",
+            imageUrl: opt.imageUrl ?? opt.gambarUrl,
+            isCorrect: Boolean(opt.isCorrect ?? opt.isKunci),
           })),
         }));
         set({ questions: formatted, activeBankSoalId: targetId });
