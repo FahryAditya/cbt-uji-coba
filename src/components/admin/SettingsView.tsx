@@ -42,7 +42,7 @@ interface NilaiStats {
 }
 
 export default function SettingsView() {
-  const { activeExamId, exams, updateExamSettings } = useCBTAdminStore();
+  const { activeExamId, exams, updateExamSettings, showToast } = useCBTAdminStore();
   const activeExam = exams.find((e) => e.id === activeExamId) || exams[0];
 
   const [kkmInput, setKkmInput] = useState<number>(activeExam?.kkm ?? 75);
@@ -158,7 +158,10 @@ export default function SettingsView() {
         </div>
 
         <button
-          onClick={loadScoreOverview}
+          onClick={async () => {
+            await loadScoreOverview();
+            showToast("Data statistik & nilai siswa berhasil dimuat ulang.", "info");
+          }}
           disabled={isLoadingStats}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-xs"
         >

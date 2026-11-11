@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useCBTAdminStore } from "@/stores/cbt-admin";
 import { Copy, RefreshCw, Send, ShieldCheck, Clock, Menu } from "lucide-react";
 
@@ -18,9 +18,8 @@ export default function Navbar({ onOpenBroadcast, onOpenMenu }: NavbarProps) {
     decrementTokenTimer,
     regenerateToken,
     exams,
+    showToast,
   } = useCBTAdminStore();
-
-  const [copied, setCopied] = useState(false);
 
   // Countdown rotasi token otomatis tiap 10 menit
   useEffect(() => {
@@ -39,8 +38,7 @@ export default function Navbar({ onOpenBroadcast, onOpenMenu }: NavbarProps) {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(activeToken);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    showToast(`Token "${activeToken}" disalin ke clipboard!`, "success");
   };
 
   return (
@@ -127,12 +125,6 @@ export default function Navbar({ onOpenBroadcast, onOpenMenu }: NavbarProps) {
           <span className="hidden xs:inline sm:inline">Broadcast</span>
           <span className="hidden md:inline">Pesan</span>
         </button>
-
-        {copied && (
-          <div className="fixed bottom-6 right-6 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-50 animate-bounce">
-            Token disalin ke clipboard!
-          </div>
-        )}
       </div>
     </header>
   );

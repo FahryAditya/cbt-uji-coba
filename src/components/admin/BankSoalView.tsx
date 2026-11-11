@@ -47,6 +47,7 @@ export default function BankSoalView() {
   const [editText, setEditText] = useState("");
   const [editPoints, setEditPoints] = useState(2.5);
   const [editOptions, setEditOptions] = useState<QuestionOption[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const openEditModal = (q: QuestionItem) => {
     setEditingQuestion(q);
@@ -63,11 +64,13 @@ export default function BankSoalView() {
     e.preventDefault();
     if (!editingQuestion || !editText.trim()) return;
 
+    setIsSaving(true);
     await updateQuestion(editingQuestion.id, {
       text: editText,
       points: editPoints,
       options: editOptions,
     });
+    setIsSaving(false);
 
     setEditingQuestion(null);
   };
@@ -140,15 +143,17 @@ export default function BankSoalView() {
     setEditOptions(newOpts);
   };
 
-  const handleSaveQuestion = (e: React.FormEvent) => {
+  const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!questionText.trim()) return;
 
-    addQuestion({
+    setIsSaving(true);
+    await addQuestion({
       text: questionText,
       points,
       options,
     });
+    setIsSaving(false);
 
     // Reset Form ke standar 4 Opsi (A, B, C, D)
     setQuestionText("");

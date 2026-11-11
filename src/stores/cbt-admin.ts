@@ -119,6 +119,11 @@ interface CBTAdminState {
     settings: { kkm?: number; tampilkanNilai?: boolean }
   ) => Promise<boolean>;
 
+  // Global Feedback Toast
+  toast: { id: number; type: "success" | "error" | "info"; message: string } | null;
+  showToast: (message: string, type?: "success" | "error" | "info") => void;
+  clearToast: () => void;
+
   // Loading & Sync
   isLoading: boolean;
   fetchAllData: () => Promise<void>;
@@ -129,7 +134,22 @@ interface CBTAdminState {
   fetchQuestions: (bankSoalId?: string) => Promise<void>;
 }
 
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
+  toast: null,
+  showToast: (message, type = "success") => {
+    const id = Date.now();
+    set({ toast: { id, type, message } });
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      if (get().toast?.id === id) {
+        set({ toast: null });
+      }
+    }, 3800);
+  },
+  clearToast: () => set({ toast: null }),
+
   activeTab: "proctoring",
   setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -142,6 +162,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       activeToken: exam ? exam.token : "",
       tokenSecondsRemaining: exam?.tokenSecondsRemaining ?? 600,
     });
+    if (exam) {
+      get().showToast(`Menampilkan ujian: ${exam.title}`, "info");
+    }
     get().fetchProctoring();
   },
 
@@ -150,7 +173,6 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   decrementTokenTimer: () => {
     const current = get().tokenSecondsRemaining;
     if (current <= 1) {
-      // Trigger auto-sync to fetch rotated token from backend
       get().fetchExams();
     } else {
       set({ tokenSecondsRemaining: current - 1 });
@@ -180,9 +202,10 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
               : e
           ),
         }));
+        get().showToast(`Token baru (${res.data.token}) berhasil diaktifkan!`, "success");
       }
-    } catch (err) {
-      console.error("Gagal regenerate token:", err);
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal memperbarui token ujian.", "error");
     }
   },
 
@@ -221,8 +244,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         ),
       }));
       await get().fetchProctoring();
-    } catch (err) {
-      console.error("Gagal buka kunci:", err);
+      get().showToast("Kunci ujian siswa berhasil dibuka kembali!", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal membuka kunci ujian siswa.", "error");
     }
   },
 
@@ -241,8 +265,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         ),
       }));
       await get().fetchProctoring();
-    } catch (err) {
-      console.error("Gagal reset jawaban:", err);
+      get().showToast("Seluruh jawaban siswa berhasil di-reset.", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mereset jawaban siswa.", "error");
     }
   },
 
@@ -258,8 +283,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           s.id === studentId ? { ...s, status: "idle" } : s
         ),
       }));
-    } catch (err) {
-      console.error("Gagal reset login:", err);
+      get().showToast("Sesi login siswa berhasil di-reset.", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mereset login siswa.", "error");
     }
   },
 
@@ -284,8 +310,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           return s;
         }),
       }));
-    } catch (err) {
-      console.error("Gagal tambah waktu:", err);
+      get().showToast(`Waktu ujian siswa ditambah +${minutes} menit.`, "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menambah waktu ujian siswa.", "error");
     }
   },
 
@@ -301,8 +328,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           s.id === studentId ? { ...s, violations: s.violations + 1 } : s
         ),
       }));
-    } catch (err) {
-      console.error("Gagal kirim peringatan:", err);
+      get().showToast("Peringatan resmi telah dikirim ke siswa.", "info");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengirim peringatan ke siswa.", "error");
     }
   },
 
@@ -317,8 +345,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         body: JSON.stringify({ ujianId: activeExamId, message }),
       });
       set({ broadcastMessage: "" });
-    } catch (err) {
-      console.error("Gagal kirim broadcast:", err);
+      get().showToast("Pesan broadcast berhasil dikirim ke peserta!", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengirim pesan broadcast.", "error");
     }
   },
 
@@ -336,8 +365,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           ? state.availableClasses
           : [...state.availableClasses, trimmed],
       }));
-    } catch (err) {
-      console.error("Gagal tambah kelas:", err);
+      get().showToast(`Kelas "${trimmed}" berhasil ditambahkan!`, "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menambahkan kelas baru.", "error");
     }
   },
 
@@ -346,11 +376,18 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   activeBankSoalId: "",
   setActiveBankSoalId: (id: string) => {
     set({ activeBankSoalId: id });
+    const bank = get().bankSoalList.find((b) => b.id === id);
+    if (bank) {
+      get().showToast(`Membuka bank soal: ${bank.judul}`, "info");
+    }
     get().fetchQuestions(id);
   },
   addQuestion: async (q) => {
     const { activeBankSoalId } = get();
-    if (!activeBankSoalId) return;
+    if (!activeBankSoalId) {
+      get().showToast("Pilih paket bank soal terlebih dahulu.", "error");
+      return;
+    }
     try {
       await apiRequest(`/api/bank-soal/${activeBankSoalId}/soal`, {
         method: "POST",
@@ -366,10 +403,10 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           })),
         }),
       });
-      // Refetch questions
       await get().fetchQuestions(activeBankSoalId);
-    } catch (err) {
-      console.error("Gagal simpan soal:", err);
+      get().showToast("Butir soal baru berhasil ditambahkan!", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menyimpan soal baru.", "error");
     }
   },
 
@@ -383,8 +420,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           .filter((q) => q.id !== id)
           .map((q, idx) => ({ ...q, number: idx + 1 })),
       }));
-    } catch (err) {
-      console.error("Gagal hapus soal:", err);
+      get().showToast("Butir soal berhasil dihapus.", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menghapus butir soal.", "error");
     }
   },
 
@@ -408,8 +446,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       if (activeBankSoalId) {
         await get().fetchQuestions(activeBankSoalId);
       }
-    } catch (err) {
-      console.error("Gagal update soal:", err);
+      get().showToast("Perubahan soal berhasil disimpan!", "success");
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal memperbarui soal.", "error");
     }
   },
 
@@ -422,9 +461,10 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       });
       if (res.data) {
         await get().fetchExams();
+        get().showToast(`Paket ujian "${examData.title}" berhasil diterbitkan!`, "success");
       }
-    } catch (err) {
-      console.error("Gagal buat ujian:", err);
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menerbitkan paket ujian.", "error");
     }
   },
 
@@ -449,11 +489,16 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
               : ex
           ),
         }));
+        get().showToast(
+          `Pengaturan ujian disimpan (KKM: ${res.data.kkm})!`,
+          "success"
+        );
         return true;
       }
+      get().showToast("Gagal menyimpan pengaturan ujian.", "error");
       return false;
-    } catch (err) {
-      console.error("Gagal update pengaturan ujian:", err);
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menyimpan pengaturan ujian.", "error");
       return false;
     }
   },

@@ -70,7 +70,7 @@ interface StudentAnswerDetailData {
 }
 
 export default function RekapNilaiView() {
-  const { activeExamId, availableClasses, updateExamSettings } = useCBTAdminStore();
+  const { activeExamId, availableClasses, updateExamSettings, showToast } = useCBTAdminStore();
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [kkm, setKkm] = useState(75);
@@ -201,6 +201,7 @@ export default function RekapNilaiView() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         setDownloadSuccess(true);
+        showToast("File Excel rekap nilai (.xlsx) berhasil diunduh!", "success");
         setTimeout(() => setDownloadSuccess(false), 3500);
         return;
       }
@@ -412,7 +413,16 @@ export default function RekapNilaiView() {
           {/* Pengaturan Lihat Hasil Jawaban */}
           <button
             type="button"
-            onClick={() => setEnableViewAnswers(!enableViewAnswers)}
+            onClick={() => {
+              const next = !enableViewAnswers;
+              setEnableViewAnswers(next);
+              showToast(
+                next
+                  ? "Kolom Lihat Hasil Jawaban diaktifkan."
+                  : "Kolom Lihat Hasil Jawaban disembunyikan.",
+                "info"
+              );
+            }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition ${
               enableViewAnswers
                 ? "bg-indigo-50 border-indigo-200 text-indigo-700"

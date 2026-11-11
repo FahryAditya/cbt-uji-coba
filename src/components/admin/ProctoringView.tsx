@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useCBTAdminStore } from "@/stores/cbt-admin";
 import {
   Users,
@@ -30,13 +30,6 @@ export default function ProctoringView() {
     addStudentTime,
     warnStudent,
   } = useCBTAdminStore();
-
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   // Filter students based on search and status
   const filteredStudents = students.filter((s) => {
@@ -350,7 +343,6 @@ export default function ProctoringView() {
                             <button
                               onClick={async () => {
                                 await unlockStudent(studentIdParam, s.sesiId);
-                                showToast(`Akses ujian untuk ${s.name} berhasil dibuka kembali!`);
                               }}
                               title="Buka Kunci Ujian Siswa"
                               className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition"
@@ -368,7 +360,6 @@ export default function ProctoringView() {
                               );
                               if (confirmReset) {
                                 await resetStudentAnswers(studentIdParam, s.sesiId);
-                                showToast(`Seluruh jawaban ${s.name} berhasil direset.`);
                               }
                             }}
                             title="Reset Seluruh Jawaban Siswa"
@@ -381,9 +372,6 @@ export default function ProctoringView() {
                           <button
                             onClick={() => {
                               resetStudentLogin(studentIdParam, s.sesiId);
-                              showToast(
-                                `Sesi login ${s.name} berhasil di-reset. Siswa dapat login kembali di perangkat baru.`
-                              );
                             }}
                             title="Reset Login (Siswa berganti perangkat)"
                             className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-600 transition"
@@ -395,9 +383,6 @@ export default function ProctoringView() {
                           <button
                             onClick={() => {
                               addStudentTime(studentIdParam, 10);
-                              showToast(
-                                `+10 Menit berhasil ditambahkan ke akun ${s.name}.`
-                              );
                             }}
                             title="Tambah Waktu +10 Menit"
                             className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition"
@@ -409,9 +394,6 @@ export default function ProctoringView() {
                           <button
                             onClick={() => {
                               warnStudent(studentIdParam);
-                              showToast(
-                                `Peringatan pelanggaran dikirimkan ke layar ${s.name}!`
-                              );
                             }}
                             title="Kirim Peringatan Langsung"
                             className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 transition"
@@ -428,14 +410,6 @@ export default function ProctoringView() {
           </table>
         </div>
       </div>
-
-      {/* Toast Notification Floating */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-slate-700 animate-slide-up">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 }
