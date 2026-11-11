@@ -152,7 +152,7 @@ export default function HomePage() {
         </div>
 
         {/* Card Login */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-7 shadow-2xl border border-white/20">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl border border-white/20">
           {/* Switch Role Tab */}
           <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl mb-6">
             <button

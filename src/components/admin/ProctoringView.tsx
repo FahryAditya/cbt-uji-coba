@@ -142,7 +142,7 @@ export default function ProctoringView() {
       </div>
 
       {/* 2. Proctoring Table & Controls */}
-      <div className="soft-card p-6">
+      <div className="soft-card p-4 sm:p-6">
         {/* Header Tabel: Search & Filter Pills */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           {/* Search Box */}

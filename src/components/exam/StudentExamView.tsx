@@ -18,6 +18,7 @@ import {
   BookOpen,
   AlertOctagon,
   Lock,
+  LayoutGrid,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export default function StudentExamView() {
 
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Inisialisasi sesi ujian dari localStorage jika belum termuat
@@ -181,22 +183,34 @@ export default function StudentExamView() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 py-6 px-4 sm:px-6 flex items-center justify-center">
+    <main className="min-h-screen bg-slate-100 py-2 px-2 sm:py-6 sm:px-6 flex items-center justify-center">
       {/* Toast Notifikasi Floating */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 animate-bounce">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
+        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-[11px] sm:text-xs px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 max-w-[90vw] truncate">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="truncate">{toastMessage}</span>
         </div>
       )}
 
+      {/* Drawer Overlay Mobile untuk Daftar Nomor Soal */}
+      {showMobileNav && (
+        <div
+          onClick={() => setShowMobileNav(false)}
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs lg:hidden"
+        />
+      )}
+
       {/* Main Container Card Ujian */}
-      <div className="w-full max-w-6xl min-h-[720px] bg-white rounded-3xl shadow-2xl shadow-sky-500/10 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
+      <div className="w-full max-w-6xl min-h-[calc(100vh-1rem)] sm:min-h-[680px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl shadow-sky-500/10 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
         
         {/* ========================================================
-            KOLOM KIRI: SIDEBAR STEPPER NOMOR SOAL (lg:col-span-3)
+            KOLOM KIRI: SIDEBAR STEPPER NOMOR SOAL (Drawer di Mobile/Tablet, Fixed di lg+)
            ======================================================== */}
-        <aside className="lg:col-span-3 bg-slate-50/70 border-r border-slate-200/80 p-5 flex flex-col justify-between">
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:static lg:col-span-3 bg-slate-50 lg:bg-slate-50/70 border-r border-slate-200/80 p-5 flex flex-col justify-between transition-transform duration-200 ease-out lg:translate-x-0 ${
+            showMobileNav ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+          }`}
+        >
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
@@ -204,9 +218,19 @@ export default function StudentExamView() {
                   Daftar Nomor Soal
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full">
-                {answeredCount}/{totalQuestions} Terisi
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full">
+                  {answeredCount}/{totalQuestions} Terisi
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileNav(false)}
+                  className="lg:hidden p-1 rounded-lg text-slate-400 hover:bg-slate-200"
+                  aria-label="Tutup daftar soal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Indikator Status Warna */}
@@ -226,7 +250,7 @@ export default function StudentExamView() {
             </div>
 
             {/* Grid Tombol Nomor 1 s/d N */}
-            <div className="grid grid-cols-5 gap-2 max-h-[420px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-5 gap-2 max-h-[60vh] lg:max-h-[420px] overflow-y-auto pr-1">
               {questions.map((q, i) => {
                 const qNum = q.number;
                 const isCurrent = i === currentQuestionIndex;
@@ -245,7 +269,10 @@ export default function StudentExamView() {
                 return (
                   <button
                     key={q.id}
-                    onClick={() => setCurrentQuestionIndex(i)}
+                    onClick={() => {
+                      setCurrentQuestionIndex(i);
+                      setShowMobileNav(false);
+                    }}
                     className={`h-9 rounded-xl text-xs flex items-center justify-center transition ${btnStyle}`}
                   >
                     {qNum}
@@ -258,7 +285,10 @@ export default function StudentExamView() {
           {/* Sisi Bawah Sidebar */}
           <div className="pt-4 border-t border-slate-200 space-y-2">
             <button
-              onClick={() => setShowGuideModal(true)}
+              onClick={() => {
+                setShowMobileNav(false);
+                setShowGuideModal(true);
+              }}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition"
             >
               <HelpCircle className="w-3.5 h-3.5" />
@@ -277,16 +307,16 @@ export default function StudentExamView() {
         {/* ========================================================
             KOLOM KANAN: LEMBAR SOAL UTAMA (lg:col-span-9)
            ======================================================== */}
-        <main className="lg:col-span-9 flex flex-col justify-between p-6 sm:p-8">
+        <main className="lg:col-span-9 flex flex-col justify-between p-4 sm:p-6 md:p-8">
           
           {/* Header Soal & Timer */}
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100 mb-5 sm:mb-6">
               {/* Profil Siswa & Mapel */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-bold text-emerald-600">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                  <span className="text-[11px] sm:text-xs font-bold text-emerald-600">
                     Koneksi Server Stabil
                   </span>
                   {violations > 0 && (
@@ -295,23 +325,36 @@ export default function StudentExamView() {
                     </span>
                   )}
                 </div>
-                <h1 className="text-base font-extrabold text-slate-800 mt-0.5">
+                <h1 className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5 leading-snug">
                   {examTitle}
                 </h1>
-                <div className="text-xs font-semibold text-slate-400">
-                  {studentName} ({studentNIS}) • {studentClass}
+                <div className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate">
+                  {studentName} • {studentClass}
                 </div>
               </div>
 
-              {/* Timer Box */}
-              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 shadow-xs">
-                <Clock className="w-5 h-5 text-rose-500 animate-pulse" />
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Waktu Tersisa
-                  </div>
-                  <div className="font-mono font-extrabold text-xl text-rose-600 tabular-digits">
-                    {formatTimer(secondsRemaining)}
+              {/* Timer Box & Mobile Daftar Soal Button */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowMobileNav(true)}
+                  className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs transition"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>
+                    Soal ({answeredCount}/{totalQuestions})
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-2.5 sm:gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 sm:px-4 py-1.5 sm:py-2 shadow-xs">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 animate-pulse shrink-0" />
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      Waktu Tersisa
+                    </div>
+                    <div className="font-mono font-extrabold text-base sm:text-xl text-rose-600 tabular-digits leading-tight">
+                      {formatTimer(secondsRemaining)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -413,43 +456,43 @@ export default function StudentExamView() {
           </div>
 
           {/* Action Bar Bawah */}
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-4 mt-8">
+          <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 mt-6 sm:mt-8">
             <button
               onClick={prevQuestion}
               disabled={currentQuestionIndex === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs disabled:opacity-40 transition"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs disabled:opacity-40 transition"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 shrink-0" />
               <span>Sebelumnya</span>
             </button>
 
             <button
               onClick={() => toggleFlag(currentQNum)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold border transition ${
                 flagged[currentQNum]
                   ? "bg-amber-100 border-amber-300 text-amber-900"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <Flag className={`w-4 h-4 ${flagged[currentQNum] ? "fill-amber-500 text-amber-500" : ""}`} />
-              <span>{flagged[currentQNum] ? "Tandai Yakin" : "Ragu-Ragu"}</span>
+              <Flag className={`w-4 h-4 shrink-0 ${flagged[currentQNum] ? "fill-amber-500 text-amber-500" : ""}`} />
+              <span>{flagged[currentQNum] ? "Yakin" : "Ragu"}</span>
             </button>
 
             {currentQuestionIndex === totalQuestions - 1 ? (
               <button
                 onClick={() => setShowSummaryModal(true)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/20"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/20"
               >
                 <span>Selesai & Kumpulkan</span>
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 shrink-0" />
               </button>
             ) : (
               <button
                 onClick={nextQuestion}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
               >
                 <span>Selanjutnya</span>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 shrink-0" />
               </button>
             )}
           </div>

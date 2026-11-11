@@ -15,6 +15,7 @@ import { CheckCircle2 } from "lucide-react";
 export default function AdminPage() {
   const { activeTab, fetchAllData } = useCBTAdminStore();
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [broadcastSentToast, setBroadcastSentToast] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -27,17 +28,23 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50">
-      {/* Sidebar Navigasi */}
-      <Sidebar />
+    <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden">
+      {/* Sidebar Navigasi (Drawer di Mobile/Tablet, Fixed di Desktop) */}
+      <Sidebar
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       {/* Area Konten Utama */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Atas */}
-        <Navbar onOpenBroadcast={() => setIsBroadcastOpen(true)} />
+        <Navbar
+          onOpenBroadcast={() => setIsBroadcastOpen(true)}
+          onOpenMenu={() => setIsMobileMenuOpen(true)}
+        />
 
         {/* Dynamic Main Body Content */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeTab === "proctoring" && <ProctoringView />}
           {activeTab === "bank-soal" && <BankSoalView />}
           {activeTab === "jadwal" && <JadwalView />}
