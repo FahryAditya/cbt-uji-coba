@@ -38,6 +38,7 @@ export default function StudentExamView() {
     secondsRemaining,
     decrementTimer,
     violations,
+    maxViolations,
     incrementViolations,
     isLocked,
     checkLockStatus,
@@ -95,13 +96,18 @@ export default function StudentExamView() {
     if (isSubmitted || totalQuestions === 0) return;
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        const nextCount = violations + 1;
         incrementViolations();
-        setToastMessage("⚠️ Peringatan: Anda terdeteksi meninggalkan layar ujian!");
+        setToastMessage(
+          maxViolations > 0
+            ? `⚠️ Peringatan (${nextCount}/${maxViolations}): Anda terdeteksi meninggalkan layar ujian!`
+            : `⚠️ Peringatan (${nextCount}x): Anda terdeteksi meninggalkan layar ujian!`
+        );
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [incrementViolations, isSubmitted, totalQuestions]);
+  }, [incrementViolations, isSubmitted, totalQuestions, violations, maxViolations]);
 
   // Polling cek pembukaan kunci oleh pengawas saat ujian terkunci
   useEffect(() => {
@@ -622,7 +628,10 @@ export default function StudentExamView() {
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed mb-6">
               Sistem CBT mendeteksi Anda telah berpindah tab atau meninggalkan layar ujian sebanyak{" "}
-              <span className="font-extrabold text-rose-600">{violations} kali</span>. Lembar ujian Anda telah dibekukan demi menjaga integritas pelaksanaan ujian.
+              <span className="font-extrabold text-rose-600">
+                {violations} kali{maxViolations > 0 ? ` (batas maksimal ${maxViolations}x)` : ""}
+              </span>
+              . Lembar ujian Anda telah dibekukan demi menjaga integritas pelaksanaan ujian.
             </p>
 
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 mb-6">

@@ -45,6 +45,7 @@ export interface ExamPackage {
   totalQuestions: number;
   status: "DRAFT" | "AKTIF" | "SELESAI";
   kkm?: number;
+  batasPelanggaran?: number;
   tampilkanNilai?: boolean;
 }
 
@@ -125,7 +126,7 @@ interface CBTAdminState {
   }) => Promise<void>;
   updateExamSettings: (
     ujianId: string,
-    settings: { kkm?: number; tampilkanNilai?: boolean }
+    settings: { kkm?: number; tampilkanNilai?: boolean; batasPelanggaran?: number }
   ) => Promise<boolean>;
 
   // Global Feedback Toast
@@ -248,7 +249,7 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       set((state) => ({
         students: state.students.map((s) =>
           (s.siswaId === studentId || s.id === studentId || s.sesiId === sesiId)
-            ? { ...s, status: "online", isLocked: false, violations: 2 }
+            ? { ...s, status: "online", isLocked: false }
             : s
         ),
       }));
@@ -510,7 +511,13 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     try {
       const res = await apiRequest<{
         success: boolean;
-        data: { id: string; kkm: number; tampilkanNilai: boolean };
+        message?: string;
+        data: {
+          id: string;
+          kkm: number;
+          tampilkanNilai: boolean;
+          batasPelanggaran: number;
+        };
       }>(`/api/ujian/${ujianId}/kkm`, {
         method: "PATCH",
         body: JSON.stringify(settings),
@@ -523,12 +530,13 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
                   ...ex,
                   kkm: res.data.kkm,
                   tampilkanNilai: res.data.tampilkanNilai,
+                  batasPelanggaran: res.data.batasPelanggaran ?? ex.batasPelanggaran ?? 3,
                 }
               : ex
           ),
         }));
         get().showToast(
-          `Pengaturan ujian disimpan (KKM: ${res.data.kkm})!`,
+          res.message || `Pengaturan ujian disimpan (KKM: ${res.data.kkm})!`,
           "success"
         );
         return true;
@@ -593,6 +601,7 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
             e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
           status: e.status || "AKTIF",
           kkm: e.kkm ?? 75,
+          batasPelanggaran: e.batasPelanggaran ?? 3,
           tampilkanNilai: e.tampilkanNilai ?? true,
         }));
         set({ exams: formatted });

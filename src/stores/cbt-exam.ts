@@ -45,6 +45,7 @@ interface CBTExamState {
   decrementTimer: () => void;
   setTimer: (secs: number) => void;
   violations: number;
+  maxViolations: number;
   incrementViolations: () => Promise<void>;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
@@ -91,6 +92,7 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   flagged: {},
   secondsRemaining: 0,
   violations: 0,
+  maxViolations: 3,
   isLocked: false,
   setIsLocked: (locked) => set({ isLocked: locked }),
   isSubmitted: false,
@@ -171,7 +173,8 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
 
   incrementViolations: async () => {
     const nextViolations = get().violations + 1;
-    const shouldLock = nextViolations >= 3;
+    const maxAllowed = get().maxViolations;
+    const shouldLock = maxAllowed > 0 && nextViolations >= maxAllowed;
     set((state) => ({
       violations: nextViolations,
       isLocked: shouldLock ? true : state.isLocked,
@@ -181,16 +184,23 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     if (!sesiId && !ujianId) return;
 
     try {
-      const res = await apiRequest<{ success: boolean; isLocked?: boolean; violations?: number }>(
+      const res = await apiRequest<{
+        success: boolean;
+        isLocked?: boolean;
+        violations?: number;
+        maxViolations?: number;
+      }>(
         "/api/exam/violation",
         {
           method: "POST",
           body: JSON.stringify({ sesiId, ujianId }),
         }
       );
-      if (res.isLocked) {
-        set({ isLocked: true });
-      }
+      set((state) => ({
+        violations: res.violations ?? state.violations,
+        maxViolations: res.maxViolations ?? state.maxViolations,
+        isLocked: res.isLocked !== undefined ? res.isLocked : state.isLocked,
+      }));
     } catch {
       // ignore
     }
@@ -285,6 +295,7 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           scoreResult: d.score ?? null,
           isLocked: Boolean(d.isLocked),
           violations: d.violations ?? 0,
+          maxViolations: d.maxViolations ?? 3,
           currentQuestionIndex: 0,
           answers: d.savedAnswers || {},
           answerIds: d.savedAnswerIds || {},

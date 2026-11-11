@@ -15,6 +15,10 @@ import {
   Search,
   Loader2,
   SlidersHorizontal,
+  ShieldAlert,
+  Trash2,
+  AlertTriangle,
+  Database,
 } from "lucide-react";
 import { useCBTAdminStore } from "@/stores/cbt-admin";
 import { apiRequest } from "@/lib/api";
@@ -41,17 +45,60 @@ interface NilaiStats {
   passPercentage: number;
 }
 
+interface CleanupSummary {
+  sesiCount: number;
+  jawabanCount: number;
+  siswaCount: number;
+  kelasCount: number;
+  emptyKelasCount: number;
+  soalCount: number;
+}
+
 export default function SettingsView() {
-  const { activeExamId, exams, updateExamSettings, showToast } = useCBTAdminStore();
+  const {
+    activeExamId,
+    activeBankSoalId,
+    exams,
+    updateExamSettings,
+    fetchAllData,
+    showToast,
+  } = useCBTAdminStore();
   const activeExam = exams.find((e) => e.id === activeExamId) || exams[0];
 
   const [kkmInput, setKkmInput] = useState<number>(activeExam?.kkm ?? 75);
+  const [batasPelanggaranInput, setBatasPelanggaranInput] = useState<number>(
+    activeExam?.batasPelanggaran ?? 3
+  );
   const [showStudentScore, setShowStudentScore] = useState<boolean>(
     activeExam?.tampilkanNilai ?? true
   );
   const [showAllStudentsTable, setShowAllStudentsTable] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  // State Pembersihan Data
+  const [cleanupSummary, setCleanupSummary] = useState<CleanupSummary>({
+    sesiCount: 0,
+    jawabanCount: 0,
+    siswaCount: 0,
+    kelasCount: 0,
+    emptyKelasCount: 0,
+    soalCount: 0,
+  });
+  const [isLoadingCleanup, setIsLoadingCleanup] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [cleanupTargets, setCleanupTargets] = useState<{
+    sessions: boolean;
+    students: boolean;
+    classes: boolean;
+    questions: boolean;
+  }>({
+    sessions: true,
+    students: false,
+    classes: false,
+    questions: false,
+  });
 
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [stats, setStats] = useState<NilaiStats>({
@@ -70,9 +117,35 @@ export default function SettingsView() {
   useEffect(() => {
     if (activeExam) {
       setKkmInput(activeExam.kkm ?? 75);
+      setBatasPelanggaranInput(activeExam.batasPelanggaran ?? 3);
       setShowStudentScore(activeExam.tampilkanNilai ?? true);
     }
-  }, [activeExam?.id, activeExam?.kkm, activeExam?.tampilkanNilai]);
+  }, [
+    activeExam?.id,
+    activeExam?.kkm,
+    activeExam?.batasPelanggaran,
+    activeExam?.tampilkanNilai,
+  ]);
+
+  const loadCleanupSummary = useCallback(async () => {
+    const targetExamId = activeExam?.id || activeExamId;
+    setIsLoadingCleanup(true);
+    try {
+      const params = new URLSearchParams();
+      if (targetExamId) params.set("ujianId", targetExamId);
+      if (activeBankSoalId) params.set("bankSoalId", activeBankSoalId);
+      const res = await apiRequest<{ success: boolean; data: CleanupSummary }>(
+        `/api/ujian/cleanup/summary?${params.toString()}`
+      );
+      if (res.data) {
+        setCleanupSummary(res.data);
+      }
+    } catch (err) {
+      console.error("Gagal memuat ringkasan pembersihan data:", err);
+    } finally {
+      setIsLoadingCleanup(false);
+    }
+  }, [activeExam?.id, activeExamId, activeBankSoalId]);
 
   const loadScoreOverview = useCallback(async () => {
     const targetId = activeExam?.id || activeExamId;
@@ -95,7 +168,8 @@ export default function SettingsView() {
 
   useEffect(() => {
     loadScoreOverview();
-  }, [loadScoreOverview]);
+    loadCleanupSummary();
+  }, [loadScoreOverview, loadCleanupSummary]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,16 +177,54 @@ export default function SettingsView() {
     if (!targetId) return;
 
     setIsSaving(true);
+    const safeBatas = Math.min(50, Math.max(0, Math.floor(Number(batasPelanggaranInput) || 0)));
     const ok = await updateExamSettings(targetId, {
       kkm: Math.min(100, Math.max(0, Number(kkmInput) || 0)),
       tampilkanNilai: showStudentScore,
+      batasPelanggaran: safeBatas,
     });
     setIsSaving(false);
 
     if (ok) {
-      setSaveToast("Pengaturan KKM & visibilitas nilai berhasil disimpan!");
+      setSaveToast("Pengaturan KKM, batas blokir & visibilitas nilai berhasil disimpan!");
       setTimeout(() => setSaveToast(null), 3500);
       loadScoreOverview();
+    }
+  };
+
+  const selectedCleanupList = (
+    Object.entries(cleanupTargets) as [keyof typeof cleanupTargets, boolean][]
+  )
+    .filter(([, checked]) => checked)
+    .map(([key]) => key);
+
+  const handleExecuteCleanup = async () => {
+    if (selectedCleanupList.length === 0) {
+      showToast("Pilih minimal 1 jenis data yang ingin dibersihkan.", "error");
+      return;
+    }
+
+    setIsCleaning(true);
+    try {
+      const targetExamId = activeExam?.id || activeExamId;
+      const res = await apiRequest<{ success: boolean; message?: string }>(
+        "/api/ujian/cleanup",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            targets: selectedCleanupList,
+            ujianId: targetExamId || undefined,
+            bankSoalId: activeBankSoalId || undefined,
+          }),
+        }
+      );
+      showToast(res.message || "Pembersihan data selesai dilakukan.", "success");
+      setShowCleanupModal(false);
+      await Promise.all([fetchAllData(), loadScoreOverview(), loadCleanupSummary()]);
+    } catch (err: any) {
+      showToast(err?.message || "Gagal melakukan pembersihan data.", "error");
+    } finally {
+      setIsCleaning(false);
     }
   };
 
@@ -176,7 +288,7 @@ export default function SettingsView() {
           <div className="flex items-center gap-2.5">
             <SlidersHorizontal className="w-4 h-4 text-sky-600" />
             <h3 className="text-sm font-bold text-slate-800">
-              Pengaturan Standar KKM & Visibilitas Nilai
+              Pengaturan Standar KKM, Anti-Curang & Visibilitas Nilai
             </h3>
           </div>
           {saveToast && (
@@ -235,6 +347,66 @@ export default function SettingsView() {
               />
             </button>
           </div>
+        </div>
+
+        {/* Pengaturan Batas Keluar / Pelanggaran Sebelum Diblokir */}
+        <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-slate-800">
+                  Batas Keluar Halaman / Pindah Tab Sebelum Diblokir
+                </div>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  Atur berapa kali siswa diperbolehkan keluar dari tab ujian sebelum akun/lembar ujiannya diblokir (dikunci) otomatis oleh sistem.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={50}
+                step={1}
+                value={batasPelanggaranInput}
+                onChange={(e) => setBatasPelanggaranInput(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                className="w-24 px-3.5 py-2 rounded-xl border border-amber-300 bg-white text-sm font-extrabold text-amber-700 focus:outline-none focus:border-amber-500"
+              />
+              <span className="text-xs font-bold text-slate-600">kali keluar</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { label: "1x (Ketat)", value: 1 },
+                { label: "3x (Standar)", value: 3 },
+                { label: "5x", value: 5 },
+                { label: "0 (Nonaktif)", value: 0 },
+              ].map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setBatasPelanggaranInput(preset.value)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    batasPelanggaranInput === preset.value
+                      ? "bg-amber-600 text-white border-amber-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[11px] font-semibold text-amber-800">
+            {batasPelanggaranInput === 0
+              ? "Mode pemblokiran otomatis dinonaktifkan (pelanggaran tetap dicatat di Live Proctoring, namun ujian siswa tidak dikunci otomatis)."
+              : `Siswa akan otomatis diblokir/dikunci saat terdeteksi keluar layar ujian sebanyak ${batasPelanggaranInput} kali.`}
+          </p>
         </div>
 
         <div className="flex justify-end pt-2">
@@ -448,6 +620,247 @@ export default function SettingsView() {
           </>
         )}
       </div>
+
+      {/* Bagian Pembersihan Data Database */}
+      <div className="soft-card p-5 sm:p-6 border border-rose-200/80 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                Pembersihan Data Sistem (Reset Data Ujian)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Bersihkan data uji coba sebelum pelaksanaan ujian resmi. Akun Admin & Guru tidak akan pernah terhapus.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadCleanupSummary}
+            disabled={isLoadingCleanup}
+            className="self-start sm:self-center flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCleanup ? "animate-spin" : ""}`} />
+            <span>Perbarui Hitungan</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Opsi 1: Sesi & Nilai */}
+          <label
+            className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
+              cleanupTargets.sessions
+                ? "bg-rose-50/60 border-rose-300"
+                : "bg-white border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={cleanupTargets.sessions}
+              onChange={(e) =>
+                setCleanupTargets((prev) => ({ ...prev, sessions: e.target.checked }))
+              }
+              className="mt-0.5 w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+            />
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-800">
+                  Riwayat Sesi, Nilai & Jawaban Ujian
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                  {cleanupSummary.sesiCount} Sesi • {cleanupSummary.jawabanCount} Jawaban
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Mengosongkan proctoring, skor, pelanggaran, dan jawaban siswa pada ujian aktif (akun siswa & bank soal tetap tersimpan).
+              </p>
+            </div>
+          </label>
+
+          {/* Opsi 2: Akun Siswa */}
+          <label
+            className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
+              cleanupTargets.students
+                ? "bg-rose-50/60 border-rose-300"
+                : "bg-white border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={cleanupTargets.students}
+              onChange={(e) =>
+                setCleanupTargets((prev) => ({ ...prev, students: e.target.checked }))
+              }
+              className="mt-0.5 w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+            />
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-800">
+                  Seluruh Data Akun Siswa
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                  {cleanupSummary.siswaCount} Siswa
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Menghapus seluruh daftar peserta siswa agar siap untuk import peserta baru (sesi ujian siswa ikut dibersihkan).
+              </p>
+            </div>
+          </label>
+
+          {/* Opsi 3: Kelas Kosong */}
+          <label
+            className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
+              cleanupTargets.classes
+                ? "bg-rose-50/60 border-rose-300"
+                : "bg-white border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={cleanupTargets.classes}
+              onChange={(e) =>
+                setCleanupTargets((prev) => ({ ...prev, classes: e.target.checked }))
+              }
+              className="mt-0.5 w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+            />
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-800">
+                  Data Kelas Kosong / Tanpa Siswa
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                  {cleanupSummary.emptyKelasCount} Kosong / {cleanupSummary.kelasCount} Total
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Menghapus kelas yang tidak memiliki siswa terdaftar (otomatis membersihkan semua kelas jika opsi Akun Siswa ikut dicentang).
+              </p>
+            </div>
+          </label>
+
+          {/* Opsi 4: Butir Soal */}
+          <label
+            className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${
+              cleanupTargets.questions
+                ? "bg-rose-50/60 border-rose-300"
+                : "bg-white border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={cleanupTargets.questions}
+              onChange={(e) =>
+                setCleanupTargets((prev) => ({ ...prev, questions: e.target.checked }))
+              }
+              className="mt-0.5 w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+            />
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-800">
+                  Butir Soal Bank Soal Aktif
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                  {cleanupSummary.soalCount} Soal
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Mengosongkan seluruh pertanyaan pada paket Bank Soal aktif saat ini untuk persiapan import soal baru.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            Penghapusan data bersifat permanen dan memerlukan konfirmasi akhir.
+          </span>
+          <button
+            type="button"
+            disabled={selectedCleanupList.length === 0 || isCleaning}
+            onClick={() => setShowCleanupModal(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs transition shadow-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Bersihkan Data Terpilih ({selectedCleanupList.length})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Modal Konfirmasi Pembersihan Data */}
+      {showCleanupModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">
+                  Konfirmasi Pembersihan Data
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tindakan ini akan menghapus permanen kategori data berikut dari database Neon PostgreSQL:
+                </p>
+              </div>
+            </div>
+
+            <ul className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200 text-xs text-rose-900 space-y-1.5 list-disc list-inside font-semibold">
+              {cleanupTargets.sessions && (
+                <li>
+                  Riwayat Sesi & Nilai Ujian ({cleanupSummary.sesiCount} sesi,{" "}
+                  {cleanupSummary.jawabanCount} jawaban)
+                </li>
+              )}
+              {cleanupTargets.students && (
+                <li>Seluruh Akun Siswa ({cleanupSummary.siswaCount} siswa)</li>
+              )}
+              {cleanupTargets.classes && (
+                <li>
+                  Data Kelas Kosong ({cleanupTargets.students ? cleanupSummary.kelasCount : cleanupSummary.emptyKelasCount} kelas)
+                </li>
+              )}
+              {cleanupTargets.questions && (
+                <li>Butir Soal Bank Soal Aktif ({cleanupSummary.soalCount} soal)</li>
+              )}
+            </ul>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isCleaning}
+                onClick={() => setShowCleanupModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isCleaning}
+                onClick={handleExecuteCleanup}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold transition"
+              >
+                {isCleaning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Membersihkan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Ya, Bersihkan Permanen</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
