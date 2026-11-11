@@ -12,6 +12,7 @@ import {
   LogOut,
   ExternalLink,
   X,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -47,7 +48,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   };
 
   interface NavItem {
-    id: "proctoring" | "bank-soal" | "jadwal" | "nilai" | "settings";
+    id: "proctoring" | "import-siswa" | "bank-soal" | "jadwal" | "nilai" | "settings";
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
@@ -55,6 +56,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const navItems: NavItem[] = [
     { id: "proctoring", label: "Live Proctoring", icon: Activity, badge: "LIVE" },
+    { id: "import-siswa", label: "Import Data Siswa", icon: UserPlus },
     { id: "bank-soal", label: "Bank Soal", icon: Layers },
     { id: "jadwal", label: "Jadwal & Ujian", icon: Calendar },
     { id: "nilai", label: "Rekap Nilai", icon: Award },

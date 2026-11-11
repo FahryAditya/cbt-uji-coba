@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Sidebar from "@/components/admin/Sidebar";
 import Navbar from "@/components/admin/Navbar";
 import ProctoringView from "@/components/admin/ProctoringView";
+import ImportSiswaView from "@/components/admin/ImportSiswaView";
 import BankSoalView from "@/components/admin/BankSoalView";
 import JadwalView from "@/components/admin/JadwalView";
 import RekapNilaiView from "@/components/admin/RekapNilaiView";
@@ -44,6 +45,7 @@ export default function AdminPage() {
         {/* Dynamic Main Body Content */}
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeTab === "proctoring" && <ProctoringView />}
+          {activeTab === "import-siswa" && <ImportSiswaView />}
           {activeTab === "bank-soal" && <BankSoalView />}
           {activeTab === "jadwal" && <JadwalView />}
           {activeTab === "nilai" && <RekapNilaiView />}
