@@ -45,6 +45,7 @@ export interface ExamPackage {
   totalQuestions: number;
   status: "DRAFT" | "AKTIF" | "SELESAI";
   kkm?: number;
+  tampilkanNilai?: boolean;
 }
 
 interface CBTAdminState {
@@ -113,6 +114,10 @@ interface CBTAdminState {
     totalQuestions?: number;
     status?: "DRAFT" | "AKTIF" | "SELESAI";
   }) => Promise<void>;
+  updateExamSettings: (
+    ujianId: string,
+    settings: { kkm?: number; tampilkanNilai?: boolean }
+  ) => Promise<boolean>;
 
   // Loading & Sync
   isLoading: boolean;
@@ -423,6 +428,36 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
     }
   },
 
+  updateExamSettings: async (ujianId, settings) => {
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        data: { id: string; kkm: number; tampilkanNilai: boolean };
+      }>(`/api/ujian/${ujianId}/kkm`, {
+        method: "PATCH",
+        body: JSON.stringify(settings),
+      });
+      if (res.success && res.data) {
+        set((state) => ({
+          exams: state.exams.map((ex) =>
+            ex.id === ujianId
+              ? {
+                  ...ex,
+                  kkm: res.data.kkm,
+                  tampilkanNilai: res.data.tampilkanNilai,
+                }
+              : ex
+          ),
+        }));
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Gagal update pengaturan ujian:", err);
+      return false;
+    }
+  },
+
   isLoading: false,
 
   fetchAllData: async () => {
@@ -475,6 +510,7 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
             e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
           status: e.status || "AKTIF",
           kkm: e.kkm ?? 75,
+          tampilkanNilai: e.tampilkanNilai ?? true,
         }));
         set({ exams: formatted });
 

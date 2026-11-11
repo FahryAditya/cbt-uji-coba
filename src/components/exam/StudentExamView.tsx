@@ -42,6 +42,7 @@ export default function StudentExamView() {
     checkLockStatus,
     isSubmitted,
     scoreResult,
+    examKkm,
     submitExam,
     studentName,
     studentNIS,
@@ -544,7 +545,7 @@ export default function StudentExamView() {
                   {scoreResult}
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 mt-1">
-                  Status: {scoreResult >= 75 ? "🎉 Tuntas (Memenuhi KKM)" : "⚠️ Belum Mencapai KKM (75)"}
+                  Status: {scoreResult >= examKkm ? `🎉 Tuntas (Memenuhi KKM ${examKkm})` : `⚠️ Belum Mencapai KKM (${examKkm})`}
                 </div>
               </div>
             )}

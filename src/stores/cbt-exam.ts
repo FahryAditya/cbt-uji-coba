@@ -53,6 +53,7 @@ interface CBTExamState {
   // Submission
   isSubmitted: boolean;
   scoreResult: number | null;
+  examKkm: number;
   submitExam: () => Promise<void>;
   isLoading: boolean;
 
@@ -94,6 +95,7 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   setIsLocked: (locked) => set({ isLocked: locked }),
   isSubmitted: false,
   scoreResult: null,
+  examKkm: 75,
   isLoading: false,
 
   selectAnswer: async (qNum, optionLabel, optionId) => {
@@ -228,6 +230,7 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
       set({
         isSubmitted: true,
         scoreResult: res.data?.score ?? null,
+        examKkm: res.data?.kkm ?? get().examKkm,
       });
     } catch (err) {
       console.error("Gagal submit ujian:", err);
