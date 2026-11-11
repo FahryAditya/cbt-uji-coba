@@ -39,6 +39,8 @@ export interface ExamPackage {
   subject: string;
   targetClasses: string[];
   token: string;
+  tokenSecondsRemaining?: number;
+  tokenExpiresAt?: string;
   durationMinutes: number;
   totalQuestions: number;
   status: "DRAFT" | "AKTIF" | "SELESAI";
@@ -54,6 +56,8 @@ interface CBTAdminState {
   activeExamId: string;
   setActiveExamId: (id: string) => void;
   activeToken: string;
+  tokenSecondsRemaining: number;
+  decrementTokenTimer: () => void;
   regenerateToken: () => Promise<void>;
   activeExamTitle: string;
   setActiveExamTitle: (title: string) => void;
@@ -131,25 +135,44 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       activeExamId: id,
       activeExamTitle: exam ? exam.title : "",
       activeToken: exam ? exam.token : "",
+      tokenSecondsRemaining: exam?.tokenSecondsRemaining ?? 600,
     });
     get().fetchProctoring();
   },
 
   activeToken: "",
+  tokenSecondsRemaining: 600,
+  decrementTokenTimer: () => {
+    const current = get().tokenSecondsRemaining;
+    if (current <= 1) {
+      // Trigger auto-sync to fetch rotated token from backend
+      get().fetchExams();
+    } else {
+      set({ tokenSecondsRemaining: current - 1 });
+    }
+  },
   regenerateToken: async () => {
     const { activeExamId } = get();
     if (!activeExamId) return;
     try {
-      const res = await apiRequest<{ success: boolean; data: { token: string } }>(
-        `/api/ujian/${activeExamId}/token`,
-        { method: "PATCH" }
-      );
+      const res = await apiRequest<{
+        success: boolean;
+        data: { token: string; tokenSecondsRemaining?: number; tokenExpiresAt?: string };
+      }>(`/api/ujian/${activeExamId}/token`, { method: "PATCH" });
       if (res.data?.token) {
-        set({ activeToken: res.data.token });
-        // Update exam in state
+        set({
+          activeToken: res.data.token,
+          tokenSecondsRemaining: res.data.tokenSecondsRemaining ?? 600,
+        });
         set((state) => ({
           exams: state.exams.map((e) =>
-            e.id === activeExamId ? { ...e, token: res.data.token } : e
+            e.id === activeExamId
+              ? {
+                  ...e,
+                  token: res.data.token,
+                  tokenSecondsRemaining: res.data.tokenSecondsRemaining ?? 600,
+                }
+              : e
           ),
         }));
       }
@@ -445,6 +468,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
             e.targetKelas?.map((k: any) => k.kelas?.nama) ||
             [],
           token: e.token || "",
+          tokenSecondsRemaining: e.tokenSecondsRemaining ?? 600,
+          tokenExpiresAt: e.tokenExpiresAt,
           durationMinutes: e.durationMinutes ?? e.durasiMenit ?? 60,
           totalQuestions:
             e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
@@ -453,17 +478,27 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         }));
         set({ exams: formatted });
 
-        // Set default active exam if none selected
-        if (!get().activeExamId && formatted.length > 0) {
+        // Set default active exam if none selected, or sync active token & timer
+        const currentActiveId = get().activeExamId;
+        if (!currentActiveId && formatted.length > 0) {
           const first = formatted[0];
           set({
             activeExamId: first.id,
             activeExamTitle: first.title,
             activeToken: first.token,
+            tokenSecondsRemaining: first.tokenSecondsRemaining ?? 600,
           });
           if (res.data[0]?.bankSoalId) {
             set({ activeBankSoalId: res.data[0].bankSoalId });
             get().fetchQuestions(res.data[0].bankSoalId);
+          }
+        } else if (currentActiveId) {
+          const active = formatted.find((f) => f.id === currentActiveId);
+          if (active) {
+            set({
+              activeToken: active.token,
+              tokenSecondsRemaining: active.tokenSecondsRemaining ?? 600,
+            });
           }
         }
       }

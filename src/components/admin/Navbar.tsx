@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCBTAdminStore } from "@/stores/cbt-admin";
 import { Copy, RefreshCw, Send, ShieldCheck, Clock } from "lucide-react";
 
@@ -13,12 +13,28 @@ export default function Navbar({ onOpenBroadcast }: NavbarProps) {
     activeExamId,
     setActiveExamId,
     activeToken,
+    tokenSecondsRemaining,
+    decrementTokenTimer,
     regenerateToken,
-    activeExamTitle,
     exams,
   } = useCBTAdminStore();
 
   const [copied, setCopied] = useState(false);
+
+  // Countdown rotasi token otomatis tiap 10 menit
+  useEffect(() => {
+    if (!activeExamId) return;
+    const timer = setInterval(() => {
+      decrementTokenTimer();
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeExamId, decrementTokenTimer]);
+
+  const formatCountdown = (secs: number) => {
+    const m = String(Math.floor(secs / 60)).padStart(2, "0");
+    const s = String(secs % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(activeToken);
@@ -64,7 +80,18 @@ export default function Navbar({ onOpenBroadcast }: NavbarProps) {
         <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
           <span className="text-xs font-semibold text-slate-400">TOKEN:</span>
           <span className="font-mono font-extrabold text-sm text-sky-600 tracking-wider">
-            {activeToken}
+            {activeToken || "-"}
+          </span>
+          <span
+            title="Token berubah otomatis setiap 10 menit"
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+              tokenSecondsRemaining <= 60
+                ? "bg-amber-100 text-amber-700 animate-pulse"
+                : "bg-sky-100 text-sky-700"
+            }`}
+          >
+            <Clock className="w-3 h-3" />
+            {formatCountdown(tokenSecondsRemaining)}
           </span>
           <button
             onClick={handleCopy}
@@ -75,7 +102,7 @@ export default function Navbar({ onOpenBroadcast }: NavbarProps) {
           </button>
           <button
             onClick={regenerateToken}
-            title="Buat Token Baru"
+            title="Ganti Token Sekarang"
             className="p-1 hover:bg-slate-200 rounded-md transition text-slate-500"
           >
             <RefreshCw className="w-3.5 h-3.5" />

@@ -10,6 +10,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  BookOpen,
+  Layers,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
@@ -18,10 +20,18 @@ import { useCBTExamStore } from "@/stores/cbt-exam";
 export default function HomePage() {
   const router = useRouter();
   const [role, setRole] = useState<"siswa" | "admin">("siswa");
+
+  // Student entry fields (Nama, Kelas, Jurusan, Token)
+  const [studentName, setStudentName] = useState("");
+  const [studentClass, setStudentClass] = useState("");
+  const [studentMajor, setStudentMajor] = useState("");
   const [tokenInput, setTokenInput] = useState("");
+
+  // Admin / Guru login fields
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,46 +43,83 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      const res = await apiRequest<{
-        success: boolean;
-        message?: string;
-        data?: {
-          token: string;
-          user: {
-            id: string;
-            username: string;
-            nama: string;
-            role: "ADMIN" | "GURU" | "SISWA";
-          };
-        };
-      }>("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim(),
-          tokenUjian: role === "siswa" ? tokenInput.trim() : undefined,
-        }),
-      });
-
-      if (!res.data?.token) {
-        throw new Error(res.message || "Gagal melakukan autentikasi");
-      }
-
-      // Simpan session ke localStorage
-      localStorage.setItem("cbt_token", res.data.token);
-      localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
-
       if (role === "admin") {
+        const res = await apiRequest<{
+          success: boolean;
+          message?: string;
+          data?: {
+            token: string;
+            user: {
+              id: string;
+              username: string;
+              nama: string;
+              role: "ADMIN" | "GURU" | "SISWA";
+            };
+          };
+        }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            username: username.trim(),
+            password: password.trim(),
+          }),
+        });
+
+        if (!res.data?.token) {
+          throw new Error(res.message || "Gagal melakukan autentikasi");
+        }
         if (res.data.user.role === "SISWA") {
           throw new Error("Akun siswa tidak memiliki hak akses Guru/Admin.");
         }
+
+        localStorage.setItem("cbt_token", res.data.token);
+        localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
         router.push("/admin");
       } else {
-        // Untuk siswa, langsung mulai sesi ujian dengan token yang diinput
-        if (!tokenInput.trim()) {
-          throw new Error("Token ujian wajib diisi untuk siswa.");
+        // Peserta Siswa: Nama, Kelas, Jurusan, Token Ujian
+        if (!studentName.trim() || !studentClass.trim() || !studentMajor.trim() || !tokenInput.trim()) {
+          throw new Error("Nama, Kelas, Jurusan, dan Token Ujian wajib diisi.");
         }
-        const examStart = await startExamWithToken(tokenInput.trim());
+
+        const res = await apiRequest<{
+          success: boolean;
+          message?: string;
+          data?: {
+            token: string;
+            ujianId: string;
+            user: {
+              id: string;
+              username: string;
+              nama: string;
+              role: "SISWA";
+              kelas?: string;
+              jurusan?: string;
+              siswaProfile?: {
+                nisn?: string;
+                kelas?: { nama: string; jurusan?: string };
+              };
+            };
+          };
+        }>("/api/auth/student-enter", {
+          method: "POST",
+          body: JSON.stringify({
+            nama: studentName.trim(),
+            kelas: studentClass.trim(),
+            jurusan: studentMajor.trim(),
+            tokenUjian: tokenInput.trim().toUpperCase(),
+          }),
+        });
+
+        if (!res.data?.token) {
+          throw new Error(res.message || "Gagal memverifikasi peserta ujian");
+        }
+
+        localStorage.setItem("cbt_token", res.data.token);
+        localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
+
+        const examStart = await startExamWithToken(
+          tokenInput.trim().toUpperCase(),
+          res.data.ujianId
+        );
         if (!examStart.success) {
           throw new Error(examStart.message || "Token ujian tidak valid atau sesi belum aktif.");
         }
@@ -149,47 +196,57 @@ export default function HomePage() {
           <form onSubmit={handleLogin} className="space-y-4">
             {role === "siswa" ? (
               <>
-                {/* NISN Siswa */}
+                {/* Nama Lengkap Siswa */}
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-600">
-                    Nomor Induk Siswa Nasional (NISN)
+                    Nama Lengkap
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
                       type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Contoh: 210401889"
+                      value={studentName}
+                      onChange={(e) => setStudentName(e.target.value)}
+                      placeholder="Masukkan nama lengkap Anda..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Password / PIN Ujian */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-600">
-                    Password / PIN Siswa
-                  </label>
-                  <div className="relative">
-                    <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Masukkan password akun..."
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-sky-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                      title={showPassword ? "Sembunyikan password" : "Lihat password"}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                {/* Kelas & Jurusan */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-600">
+                      Kelas
+                    </label>
+                    <div className="relative">
+                      <Layers className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        value={studentClass}
+                        onChange={(e) => setStudentClass(e.target.value)}
+                        placeholder="Contoh: XII"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-600">
+                      Jurusan
+                    </label>
+                    <div className="relative">
+                      <BookOpen className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        value={studentMajor}
+                        onChange={(e) => setStudentMajor(e.target.value)}
+                        placeholder="Contoh: MIPA / RPL"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -197,12 +254,15 @@ export default function HomePage() {
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-600 flex items-center justify-between">
                     <span>Token Ujian (Dari Pengawas)</span>
+                    <span className="text-[10px] font-medium text-sky-600">
+                      Berubah tiap 10 menit
+                    </span>
                   </label>
                   <input
                     type="text"
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
-                    placeholder="Contoh: PAN-2026"
+                    placeholder="Contoh: CBT-4821"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-extrabold text-sky-600 tracking-wider uppercase focus:outline-none focus:border-sky-500"
                     required
                   />
@@ -265,7 +325,7 @@ export default function HomePage() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memverifikasi Akun...</span>
+                  <span>Memverifikasi...</span>
                 </>
               ) : (
                 <>

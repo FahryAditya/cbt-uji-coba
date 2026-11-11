@@ -58,7 +58,7 @@ interface CBTExamState {
 
   // Actions
   initExamFromStorage: () => Promise<boolean>;
-  startExamWithToken: (token: string) => Promise<{ success: boolean; message?: string }>;
+  startExamWithToken: (token: string, ujianId?: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 export const useCBTExamStore = create<CBTExamState>((set, get) => ({
@@ -236,14 +236,17 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     }
   },
 
-  startExamWithToken: async (token: string) => {
+  startExamWithToken: async (token: string, ujianId?: string) => {
     set({ isLoading: true });
     try {
       const res = await apiRequest<{ success: boolean; message?: string; data: any }>(
         "/api/exam/start",
         {
           method: "POST",
-          body: JSON.stringify({ token: token.trim() }),
+          body: JSON.stringify({
+            token: token.trim(),
+            ...(ujianId ? { ujianId } : {}),
+          }),
         }
       );
 
@@ -271,20 +274,27 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           ujianId: d.ujianId,
           examTitle: d.examTitle || "Ujian Berbasis Komputer",
           questions: questionsList,
-          secondsRemaining: (d.durationMinutes || 60) * 60,
+          secondsRemaining: d.sisaWaktuDetik ?? (d.durationMinutes || 60) * 60,
           studentName: userObj?.nama || "Siswa Peserta",
           studentNIS: userObj?.siswaProfile?.nisn || userObj?.username || "-",
-          studentClass: userObj?.siswaProfile?.kelas?.nama || "XII",
-          isSubmitted: false,
+          studentClass: userObj?.siswaProfile?.kelas?.nama || userObj?.kelas || "-",
+          isSubmitted: Boolean(d.isSubmitted),
+          scoreResult: d.score ?? null,
+          isLocked: Boolean(d.isLocked),
+          violations: d.violations ?? 0,
           currentQuestionIndex: 0,
-          answers: {},
-          flagged: {},
+          answers: d.savedAnswers || {},
+          answerIds: d.savedAnswerIds || {},
+          flagged: d.savedFlagged || {},
         });
 
-        // Simpan sesiId aktif ke localStorage
+        // Simpan sesiId & ujianId aktif ke localStorage
         if (typeof window !== "undefined") {
           localStorage.setItem("cbt_active_sesi", d.sesiId);
-          localStorage.setItem("cbt_active_token", token.trim());
+          localStorage.setItem("cbt_active_ujian", d.ujianId);
+          if (token.trim()) {
+            localStorage.setItem("cbt_active_token", token.trim());
+          }
         }
 
         return { success: true };
@@ -299,9 +309,10 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
 
   initExamFromStorage: async () => {
     if (typeof window === "undefined") return false;
-    const token = localStorage.getItem("cbt_active_token");
-    if (token) {
-      const res = await get().startExamWithToken(token);
+    const token = localStorage.getItem("cbt_active_token") || "";
+    const ujianId = localStorage.getItem("cbt_active_ujian") || undefined;
+    if (token || ujianId) {
+      const res = await get().startExamWithToken(token, ujianId);
       return res.success;
     }
     return false;
