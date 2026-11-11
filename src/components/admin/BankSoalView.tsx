@@ -13,7 +13,9 @@ import {
   Sparkles,
   Pencil,
   X,
+  FileUp,
 } from "lucide-react";
+import ImportWordPanel from "./ImportWordPanel";
 
 export default function BankSoalView() {
   const {
@@ -29,6 +31,7 @@ export default function BankSoalView() {
   const activeBank = bankSoalList.find((b) => b.id === activeBankSoalId);
 
   const [isCreating, setIsCreating] = useState(false);
+  const [isImportingWord, setIsImportingWord] = useState(false);
   const [questionText, setQuestionText] = useState("");
   const [points, setPoints] = useState(2.5);
 
@@ -197,14 +200,40 @@ export default function BankSoalView() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{isCreating ? "Tutup Form Input" : "+ Tambah Soal Baru"}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              setIsImportingWord(!isImportingWord);
+              if (!isImportingWord) setIsCreating(false);
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition shadow-sm ${
+              isImportingWord
+                ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            }`}
+          >
+            <FileUp className="w-4 h-4" />
+            <span>{isImportingWord ? "Tutup Import Word" : "Import dari Word (.docx)"}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsCreating(!isCreating);
+              if (!isCreating) setIsImportingWord(false);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{isCreating ? "Tutup Form Input" : "+ Tambah Soal Baru"}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Panel Import Soal dari Microsoft Word */}
+      {isImportingWord && (
+        <ImportWordPanel onClose={() => setIsImportingWord(false)} />
+      )}
 
       {/* Form Input Soal Dinamis (Custom A - E) */}
       {isCreating && (
@@ -374,7 +403,7 @@ export default function BankSoalView() {
             </div>
 
             {/* Teks Soal */}
-            <p className="text-sm font-semibold text-slate-800 leading-relaxed mb-4">
+            <p className="text-sm font-semibold text-slate-800 leading-relaxed mb-4 whitespace-pre-line">
               {q.text}
             </p>
 

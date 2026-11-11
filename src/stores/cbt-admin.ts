@@ -100,6 +100,15 @@ interface CBTAdminState {
   activeBankSoalId: string;
   setActiveBankSoalId: (id: string) => void;
   addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<void>;
+  importQuestionsBulk: (
+    bankSoalId: string,
+    questions: {
+      pertanyaan: string;
+      bobotNilai: number;
+      options: { label: string; text: string; isCorrect: boolean }[];
+    }[],
+    replaceExisting?: boolean
+  ) => Promise<boolean>;
   updateQuestion: (id: string, q: Partial<QuestionItem>) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
 
@@ -407,6 +416,35 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       get().showToast("Butir soal baru berhasil ditambahkan!", "success");
     } catch (err: any) {
       get().showToast(err?.message || "Gagal menyimpan soal baru.", "error");
+    }
+  },
+
+  importQuestionsBulk: async (bankSoalId, questions, replaceExisting = false) => {
+    if (!bankSoalId) {
+      get().showToast("Pilih paket bank soal terlebih dahulu.", "error");
+      return false;
+    }
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        message?: string;
+        data?: { importedCount: number };
+      }>(`/api/bank-soal/${bankSoalId}/soal/import`, {
+        method: "POST",
+        body: JSON.stringify({ questions, replaceExisting }),
+      });
+      await Promise.all([
+        get().fetchQuestions(bankSoalId),
+        get().fetchBankSoal(),
+      ]);
+      get().showToast(
+        res.message || `${questions.length} butir soal berhasil diimport dari Word!`,
+        "success"
+      );
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengimport soal dari Word.", "error");
+      return false;
     }
   },
 
