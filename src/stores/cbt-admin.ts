@@ -33,6 +33,22 @@ export interface QuestionItem {
   points: number;
 }
 
+export interface BankFolderItem {
+  id: string;
+  kode: string;
+  judul: string;
+  deskripsi?: string | null;
+  mapel: string;
+  totalSoal: number;
+  usedInExams?: {
+    id: string;
+    judul: string;
+    status: string;
+    token?: string | null;
+  }[];
+  createdAt?: string;
+}
+
 export interface ExamPackage {
   id: string;
   title: string;
@@ -43,6 +59,9 @@ export interface ExamPackage {
   tokenExpiresAt?: string;
   durationMinutes: number;
   totalQuestions: number;
+  bankSoalId?: string;
+  bankSoalJudul?: string;
+  autoRotateToken?: boolean;
   status: "DRAFT" | "AKTIF" | "SELESAI";
   kkm?: number;
   batasPelanggaran?: number;
@@ -95,12 +114,19 @@ interface CBTAdminState {
   availableClasses: string[];
   addNewClass: (className: string) => Promise<void>;
 
-  // Questions Management
+  // Questions & Folder Management
   questions: QuestionItem[];
-  bankSoalList: { id: string; kode: string; judul: string; mapel: string; totalSoal: number }[];
+  bankSoalList: BankFolderItem[];
   activeBankSoalId: string;
   setActiveBankSoalId: (id: string) => void;
-  addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<void>;
+  createBankFolder: (
+    judul: string,
+    mapelNama?: string,
+    deskripsi?: string
+  ) => Promise<string | null>;
+  renameBankFolder: (id: string, judul: string) => Promise<boolean>;
+  deleteBankFolder: (id: string) => Promise<boolean>;
+  addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<boolean>;
   importQuestionsBulk: (
     bankSoalId: string,
     questions: {
@@ -122,8 +148,16 @@ interface CBTAdminState {
     durationMinutes: number;
     token?: string;
     totalQuestions?: number;
+    bankSoalId?: string;
+    autoRotateToken?: boolean;
     status?: "DRAFT" | "AKTIF" | "SELESAI";
-  }) => Promise<void>;
+  }) => Promise<string | null>;
+  startExamWithBankFolder: (params: {
+    ujianId: string;
+    bankSoalId: string;
+    token: string;
+    autoRotateToken: boolean;
+  }) => Promise<boolean>;
   updateExamSettings: (
     ujianId: string,
     settings: { kkm?: number; tampilkanNilai?: boolean; batasPelanggaran?: number }
@@ -386,17 +420,73 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   activeBankSoalId: "",
   setActiveBankSoalId: (id: string) => {
     set({ activeBankSoalId: id });
-    const bank = get().bankSoalList.find((b) => b.id === id);
-    if (bank) {
-      get().showToast(`Membuka bank soal: ${bank.judul}`, "info");
-    }
     get().fetchQuestions(id);
   },
+
+  createBankFolder: async (judul, mapelNama = "Pendidikan Pancasila", deskripsi = "") => {
+    const cleanTitle = judul.trim();
+    if (!cleanTitle) {
+      get().showToast("Nama folder tidak boleh kosong.", "error");
+      return null;
+    }
+    try {
+      const res = await apiRequest<{ success: boolean; message?: string; data: BankFolderItem }>(
+        "/api/bank-soal",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            judul: cleanTitle,
+            mapelNama: mapelNama.trim() || "Pendidikan Pancasila",
+            deskripsi: deskripsi.trim() || null,
+          }),
+        }
+      );
+      await get().fetchBankSoal();
+      get().showToast(res.message || `Folder "${cleanTitle}" berhasil dibuat!`, "success");
+      return res.data?.id || null;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal membuat folder baru.", "error");
+      return null;
+    }
+  },
+
+  renameBankFolder: async (id, judul) => {
+    const cleanTitle = judul.trim();
+    if (!cleanTitle) return false;
+    try {
+      await apiRequest(`/api/bank-soal/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ judul: cleanTitle }),
+      });
+      await Promise.all([get().fetchBankSoal(), get().fetchExams()]);
+      get().showToast(`Nama folder diubah menjadi "${cleanTitle}".`, "success");
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengubah nama folder.", "error");
+      return false;
+    }
+  },
+
+  deleteBankFolder: async (id) => {
+    try {
+      await apiRequest(`/api/bank-soal/${id}`, { method: "DELETE" });
+      if (get().activeBankSoalId === id) {
+        set({ activeBankSoalId: "", questions: [] });
+      }
+      await get().fetchBankSoal();
+      get().showToast("Folder bank soal berhasil dihapus.", "success");
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menghapus folder.", "error");
+      return false;
+    }
+  },
+
   addQuestion: async (q) => {
     const { activeBankSoalId } = get();
     if (!activeBankSoalId) {
-      get().showToast("Pilih paket bank soal terlebih dahulu.", "error");
-      return;
+      get().showToast("Buka folder bank soal terlebih dahulu.", "error");
+      return false;
     }
     try {
       await apiRequest(`/api/bank-soal/${activeBankSoalId}/soal`, {
@@ -413,10 +503,12 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           })),
         }),
       });
-      await get().fetchQuestions(activeBankSoalId);
-      get().showToast("Butir soal baru berhasil ditambahkan!", "success");
+      await Promise.all([get().fetchQuestions(activeBankSoalId), get().fetchBankSoal()]);
+      get().showToast("Butir soal baru berhasil disimpan!", "success");
+      return true;
     } catch (err: any) {
       get().showToast(err?.message || "Gagal menyimpan soal baru.", "error");
+      return false;
     }
   },
 
@@ -459,6 +551,7 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           .filter((q) => q.id !== id)
           .map((q, idx) => ({ ...q, number: idx + 1 })),
       }));
+      await get().fetchBankSoal();
       get().showToast("Butir soal berhasil dihapus.", "success");
     } catch (err: any) {
       get().showToast(err?.message || "Gagal menghapus butir soal.", "error");
@@ -499,11 +592,63 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         body: JSON.stringify(examData),
       });
       if (res.data) {
-        await get().fetchExams();
+        await Promise.all([get().fetchExams(), get().fetchBankSoal()]);
         get().showToast(`Paket ujian "${examData.title}" berhasil diterbitkan!`, "success");
+        return res.data.id || null;
       }
+      return null;
     } catch (err: any) {
       get().showToast(err?.message || "Gagal menerbitkan paket ujian.", "error");
+      return null;
+    }
+  },
+
+  startExamWithBankFolder: async ({ ujianId, bankSoalId, token, autoRotateToken }) => {
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        message?: string;
+        data?: {
+          id: string;
+          title: string;
+          bankSoalId: string;
+          token: string;
+          tokenSecondsRemaining: number;
+          autoRotateToken: boolean;
+          status: string;
+        };
+      }>(`/api/ujian/${ujianId}/start`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          bankSoalId,
+          token: token.trim().toUpperCase(),
+          autoRotateToken,
+          status: "AKTIF",
+        }),
+      });
+
+      if (res.success && res.data) {
+        set({
+          activeExamId: res.data.id,
+          activeExamTitle: res.data.title,
+          activeToken: res.data.token,
+          tokenSecondsRemaining: res.data.tokenSecondsRemaining ?? 600,
+        });
+        await Promise.all([
+          get().fetchExams(),
+          get().fetchBankSoal(),
+          get().fetchProctoring(),
+        ]);
+        get().showToast(
+          res.message || `Sesi ujian aktif dengan token "${res.data.token}"!`,
+          "success"
+        );
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengaktifkan sesi ujian.", "error");
+      return false;
     }
   },
 
@@ -599,6 +744,9 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           durationMinutes: e.durationMinutes ?? e.durasiMenit ?? 60,
           totalQuestions:
             e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
+          bankSoalId: e.bankSoalId,
+          bankSoalJudul: e.bankSoalJudul,
+          autoRotateToken: e.autoRotateToken,
           status: e.status || "AKTIF",
           kkm: e.kkm ?? 75,
           batasPelanggaran: e.batasPelanggaran ?? 3,

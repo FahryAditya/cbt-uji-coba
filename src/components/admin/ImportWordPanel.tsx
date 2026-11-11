@@ -23,9 +23,17 @@ import {
 
 interface ImportWordPanelProps {
   onClose: () => void;
+  onSaved?: (importedCount: number) => void;
+  onPendingChange?: (pendingCount: number, saveHandler: (() => Promise<boolean>) | null) => void;
+  hideFooterActions?: boolean;
 }
 
-export default function ImportWordPanel({ onClose }: ImportWordPanelProps) {
+export default function ImportWordPanel({
+  onClose,
+  onSaved,
+  onPendingChange,
+  hideFooterActions = false,
+}: ImportWordPanelProps) {
   const {
     activeBankSoalId,
     bankSoalList,
@@ -182,9 +190,10 @@ export default function ImportWordPanel({ onClose }: ImportWordPanelProps) {
     setParsedQuestions((prev) => prev.filter((_, idx) => idx !== qIdx));
   };
 
-  const handleImportSubmit = async () => {
-    if (parsedQuestions.length === 0 || !activeBankSoalId) return;
+  const handleImportSubmit = async (): Promise<boolean> => {
+    if (parsedQuestions.length === 0 || !activeBankSoalId) return false;
     setIsImporting(true);
+    const countToImport = parsedQuestions.length;
     const ok = await importQuestionsBulk(
       activeBankSoalId,
       parsedQuestions.map((q) => ({
@@ -200,9 +209,26 @@ export default function ImportWordPanel({ onClose }: ImportWordPanelProps) {
     );
     setIsImporting(false);
     if (ok) {
-      onClose();
+      setParsedQuestions([]);
+      onSaved?.(countToImport);
+      if (!hideFooterActions) {
+        onClose();
+      }
     }
+    return ok;
   };
+
+  const submitRef = useRef<() => Promise<boolean>>(async () => false);
+  submitRef.current = handleImportSubmit;
+
+  React.useEffect(() => {
+    if (!onPendingChange) return;
+    onPendingChange(
+      parsedQuestions.length,
+      parsedQuestions.length > 0 ? () => submitRef.current() : null
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedQuestions.length]);
 
   return (
     <div className="soft-card p-4 sm:p-6 border-2 border-emerald-500/25 bg-emerald-50/10 space-y-5">
@@ -221,14 +247,16 @@ export default function ImportWordPanel({ onClose }: ImportWordPanelProps) {
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="self-end sm:self-center p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-          title="Tutup panel import"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {!hideFooterActions && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="self-end sm:self-center p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+            title="Tutup panel import"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Mode Tabs */}
@@ -483,34 +511,36 @@ export default function ImportWordPanel({ onClose }: ImportWordPanelProps) {
           </div>
 
           {/* Submit Import */}
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isImporting}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              disabled={isImporting}
-              onClick={handleImportSubmit}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold transition shadow-sm"
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Menyimpan {parsedQuestions.length} Soal...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Simpan {parsedQuestions.length} Soal ke Bank Soal</span>
-                </>
-              )}
-            </button>
-          </div>
+          {!hideFooterActions && (
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isImporting}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isImporting}
+                onClick={handleImportSubmit}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold transition shadow-sm"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Menyimpan {parsedQuestions.length} Soal...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Simpan {parsedQuestions.length} Soal ke Bank Soal</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
