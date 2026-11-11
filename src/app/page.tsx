@@ -75,9 +75,9 @@ export default function HomePage() {
         localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
         router.push("/admin");
       } else {
-        // Peserta Siswa: Nama, Kelas, Jurusan, Token Ujian
+        // Peserta Siswa: Nama Lengkap (persis DB), Kelas, Jurusan, Token Ujian
         if (!studentName.trim() || !studentClass.trim() || !studentMajor.trim() || !tokenInput.trim()) {
-          throw new Error("Nama, Kelas, Jurusan, dan Token Ujian wajib diisi.");
+          throw new Error("Nama Lengkap, Kelas, Jurusan, dan Token Ujian wajib diisi.");
         }
 
         const res = await apiRequest<{
@@ -102,7 +102,7 @@ export default function HomePage() {
         }>("/api/auth/student-enter", {
           method: "POST",
           body: JSON.stringify({
-            nama: studentName.trim(),
+            nama: studentName, // dikirim persis sesuai ketikan user (exact match case-sensitive)
             kelas: studentClass.trim(),
             jurusan: studentMajor.trim(),
             tokenUjian: tokenInput.trim().toUpperCase(),
@@ -207,11 +207,14 @@ export default function HomePage() {
                       type="text"
                       value={studentName}
                       onChange={(e) => setStudentName(e.target.value)}
-                      placeholder="Masukkan nama lengkap Anda..."
+                      placeholder="Ketik nama lengkap persis sesuai data..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
                       required
                     />
                   </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Harus sesuai dan sama persis dengan nama di database (termasuk huruf besar/kecil).
+                  </p>
                 </div>
 
                 {/* Kelas & Jurusan */}

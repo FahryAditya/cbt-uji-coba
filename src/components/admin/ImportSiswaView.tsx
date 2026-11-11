@@ -72,7 +72,7 @@ export default function ImportSiswaView() {
     loadStudents();
   }, [loadStudents]);
 
-  // Parse CSV / TSV / semicolon lines
+  // Parse CSV / TSV / semicolon lines (otomatis melewati kolom No jika ada 3+ kolom)
   const parseDelimitedLines = (raw: string): ParsedStudentRow[] => {
     const lines = raw
       .split(/\r?\n/)
@@ -80,8 +80,10 @@ export default function ImportSiswaView() {
       .filter(Boolean);
 
     const parsed: ParsedStudentRow[] = [];
+    let namaIdx = 0;
+    let kelasIdx = 1;
+
     lines.forEach((line, idx) => {
-      // Detect delimiter: tab, semicolon, or comma
       const delimiter = line.includes("\t")
         ? "\t"
         : line.includes(";")
@@ -90,20 +92,34 @@ export default function ImportSiswaView() {
       const parts = line.split(delimiter).map((p) => p.replace(/^["']|["']$/g, "").trim());
       if (parts.length < 2) return;
 
-      const col1 = parts[0];
-      const col2 = parts[1];
-
-      // Skip header line
-      if (
-        idx === 0 &&
-        col1.toLowerCase().includes("nama") &&
-        col2.toLowerCase().includes("kelas")
-      ) {
-        return;
+      // Deteksi header (termasuk format No, Nama, Kelas)
+      if (idx === 0) {
+        const lower = parts.map((p) => p.toLowerCase());
+        const foundNama = lower.findIndex((p) => p.includes("nama"));
+        const foundKelas = lower.findIndex((p) => p.includes("kelas") || p.includes("rombel"));
+        if (foundNama !== -1 || foundKelas !== -1) {
+          if (foundNama !== -1) namaIdx = foundNama;
+          if (foundKelas !== -1) kelasIdx = foundKelas;
+          return;
+        }
+        // Tanpa header tapi kolom pertama angka urut dan ada 3+ kolom: No | Nama | Kelas
+        if (parts.length >= 3 && /^\d{1,4}\.?$/.test(parts[0])) {
+          namaIdx = 1;
+          kelasIdx = 2;
+        }
       }
 
-      if (col1 && col2) {
-        parsed.push({ nama: col1, kelas: col2 });
+      const colNama = (parts[namaIdx] || "").trim();
+      const colKelas = (parts[kelasIdx] || "").trim();
+
+      if (
+        colNama &&
+        colKelas &&
+        !/^\d{1,4}\.?$/.test(colNama) &&
+        !/^(no\.?|nama(\s+lengkap|\s+siswa)?|total|jumlah)$/i.test(colNama) &&
+        !/^(kelas|rombel|total|jumlah)$/i.test(colKelas)
+      ) {
+        parsed.push({ nama: colNama, kelas: colKelas });
       }
     });
     return parsed;
@@ -289,7 +305,7 @@ export default function ImportSiswaView() {
             Import Data Siswa (Nama &amp; Kelas)
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Unggah file Excel/CSV atau tempel daftar siswa berisi kolom Nama dan Kelas.
+            Unggah file Excel/CSV atau tempel daftar siswa berisi kolom Nama dan Kelas. Pastikan ejaan dan huruf kapital Nama Lengkap tepat karena siswa wajib mengetik nama persis saat login.
           </p>
         </div>
 
