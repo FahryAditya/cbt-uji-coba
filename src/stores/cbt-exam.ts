@@ -17,6 +17,39 @@ export interface StudentExamQuestion {
   options: StudentExamOption[];
 }
 
+interface PendingAnswerItem {
+  soalId: string;
+  questionNumber: number;
+  pilihanId: string | null;
+  selectedOption?: string;
+  isFlagged: boolean;
+}
+
+const AUTOSAVE_DEBOUNCE_MS = 1500;
+const AUTOSAVE_MAX_WAIT_MS = 4000;
+
+const pendingSyncQueue = new Map<string, PendingAnswerItem>();
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getDraftStorageKey(ujianId: string) {
+  return `cbt_pending_draft_${ujianId}`;
+}
+
+function persistPendingDraftToStorage(ujianId: string) {
+  if (typeof window === "undefined" || !ujianId) return;
+  try {
+    if (pendingSyncQueue.size === 0) {
+      localStorage.removeItem(getDraftStorageKey(ujianId));
+      return;
+    }
+    const entries = Array.from(pendingSyncQueue.entries());
+    localStorage.setItem(getDraftStorageKey(ujianId), JSON.stringify(entries));
+  } catch {
+    // Abaikan quota error localStorage
+  }
+}
+
 interface CBTExamState {
   // Session & Exam Info
   sesiId: string;
@@ -39,6 +72,7 @@ interface CBTExamState {
   selectAnswer: (qNum: number, optionLabel: string, optionId?: string) => Promise<void>;
   flagged: Record<number, boolean>;
   toggleFlag: (qNum: number) => void;
+  flushPendingAnswers: (options?: { keepalive?: boolean }) => Promise<void>;
 
   // Timer & Violations
   secondsRemaining: number;
@@ -103,39 +137,40 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   selectAnswer: async (qNum, optionLabel, optionId) => {
     if (get().isLocked) return;
 
-    // 1. Optimistic Update di UI
+    // 1. Optimistic Update instan di UI (0ms)
     set((state) => ({
       answers: { ...state.answers, [qNum]: optionLabel },
       answerIds: optionId ? { ...state.answerIds, [qNum]: optionId } : state.answerIds,
     }));
 
-    // 2. Autosave ke Backend API
-    const { sesiId, ujianId, questions } = get();
+    // 2. Masukkan ke antrean batch & simpan cadangan lokal sebelum debounce flush
+    const { sesiId, ujianId, questions, flagged } = get();
     const currentQ = questions.find((q) => q.number === qNum);
     if (!sesiId || !ujianId || !currentQ) return;
 
-    try {
-      await apiRequest("/api/exam/answer", {
-        method: "PUT",
-        body: JSON.stringify({
-          sesiId,
-          ujianId,
-          soalId: currentQ.id,
-          questionNumber: qNum,
-          pilihanId: optionId || null,
-          selectedOption: optionLabel,
-          isFlagged: Boolean(get().flagged[qNum]),
-        }),
-      });
-    } catch (err: any) {
-      if (err?.message?.includes("terkunci") || err?.status === 403) {
-        set({ isLocked: true });
-      }
-      console.warn("Autosave gagal, akan disimpan lokal:", err);
+    pendingSyncQueue.set(currentQ.id, {
+      soalId: currentQ.id,
+      questionNumber: qNum,
+      pilihanId: optionId || null,
+      selectedOption: optionLabel,
+      isFlagged: Boolean(flagged[qNum]),
+    });
+    persistPendingDraftToStorage(ujianId);
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      get().flushPendingAnswers();
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    if (!maxWaitTimer) {
+      maxWaitTimer = setTimeout(() => {
+        get().flushPendingAnswers();
+      }, AUTOSAVE_MAX_WAIT_MS);
     }
   },
 
   toggleFlag: (qNum) => {
+    if (get().isLocked) return;
     const nextFlagged = !get().flagged[qNum];
     set((state) => ({
       flagged: { ...state.flagged, [qNum]: nextFlagged },
@@ -145,18 +180,67 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     const currentQ = questions.find((q) => q.number === qNum);
     if (!sesiId || !ujianId || !currentQ) return;
 
-    apiRequest("/api/exam/answer", {
-      method: "PUT",
-      body: JSON.stringify({
-        sesiId,
-        ujianId,
-        soalId: currentQ.id,
-        questionNumber: qNum,
-        pilihanId: answerIds[qNum] || null,
-        selectedOption: answers[qNum] || undefined,
-        isFlagged: nextFlagged,
-      }),
-    }).catch(() => {});
+    pendingSyncQueue.set(currentQ.id, {
+      soalId: currentQ.id,
+      questionNumber: qNum,
+      pilihanId: answerIds[qNum] || null,
+      selectedOption: answers[qNum] || undefined,
+      isFlagged: nextFlagged,
+    });
+    persistPendingDraftToStorage(ujianId);
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      get().flushPendingAnswers();
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    if (!maxWaitTimer) {
+      maxWaitTimer = setTimeout(() => {
+        get().flushPendingAnswers();
+      }, AUTOSAVE_MAX_WAIT_MS);
+    }
+  },
+
+  flushPendingAnswers: async (options) => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (maxWaitTimer) {
+      clearTimeout(maxWaitTimer);
+      maxWaitTimer = null;
+    }
+
+    const { ujianId, isLocked } = get();
+    if (!ujianId || isLocked || pendingSyncQueue.size === 0) return;
+
+    const batchItems = Array.from(pendingSyncQueue.values());
+    pendingSyncQueue.clear();
+
+    try {
+      await apiRequest("/api/exam/answers/batch", {
+        method: "PUT",
+        keepalive: Boolean(options?.keepalive),
+        body: JSON.stringify({
+          ujianId,
+          items: batchItems,
+        }),
+      });
+      persistPendingDraftToStorage(ujianId);
+    } catch (err: any) {
+      if (err?.message?.includes("terkunci") || err?.status === 403) {
+        set({ isLocked: true });
+        return;
+      }
+      // Kembalikan item yang gagal ke antrean (jika belum tertimpa pilihan lebih baru)
+      for (const item of batchItems) {
+        if (!pendingSyncQueue.has(item.soalId)) {
+          pendingSyncQueue.set(item.soalId, item);
+        }
+      }
+      persistPendingDraftToStorage(ujianId);
+      console.warn("Batch autosave gagal, tetap tersimpan di cadangan lokal:", err);
+    }
   },
 
   decrementTimer: () =>
@@ -233,10 +317,16 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     if (!sesiId || !ujianId) return;
     set({ isLoading: true });
     try {
+      // Pastikan seluruh jawaban di antrean debounce sudah terkirim sebelum koreksi submit
+      await get().flushPendingAnswers();
       const res = await apiRequest<{ success: boolean; data: any }>("/api/exam/submit", {
         method: "POST",
         body: JSON.stringify({ sesiId, ujianId }),
       });
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(getDraftStorageKey(ujianId));
+      }
+      pendingSyncQueue.clear();
       set({
         isSubmitted: true,
         scoreResult: res.data?.score ?? null,
@@ -282,6 +372,34 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
         const userStr = typeof window !== "undefined" ? localStorage.getItem("cbt_user") : null;
         const userObj = userStr ? JSON.parse(userStr) : null;
 
+        const mergedAnswers = { ...(d.savedAnswers || {}) };
+        const mergedAnswerIds = { ...(d.savedAnswerIds || {}) };
+        const mergedFlagged = { ...(d.savedFlagged || {}) };
+
+        // Pulihkan antrean lokal yang belum sempat terkirim saat refresh/putus koneksi
+        if (typeof window !== "undefined" && !d.isSubmitted) {
+          try {
+            const rawDraft = localStorage.getItem(getDraftStorageKey(d.ujianId));
+            if (rawDraft) {
+              const entries: [string, PendingAnswerItem][] = JSON.parse(rawDraft);
+              if (Array.isArray(entries) && entries.length > 0) {
+                for (const [k, item] of entries) {
+                  pendingSyncQueue.set(k, item);
+                  if (item.selectedOption) {
+                    mergedAnswers[item.questionNumber] = item.selectedOption;
+                  }
+                  if (item.pilihanId) {
+                    mergedAnswerIds[item.questionNumber] = item.pilihanId;
+                  }
+                  mergedFlagged[item.questionNumber] = item.isFlagged;
+                }
+              }
+            }
+          } catch {
+            // abaikan draft lokal rusak
+          }
+        }
+
         set({
           sesiId: d.sesiId,
           ujianId: d.ujianId,
@@ -297,10 +415,14 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           violations: d.violations ?? 0,
           maxViolations: d.maxViolations ?? 3,
           currentQuestionIndex: 0,
-          answers: d.savedAnswers || {},
-          answerIds: d.savedAnswerIds || {},
-          flagged: d.savedFlagged || {},
+          answers: mergedAnswers,
+          answerIds: mergedAnswerIds,
+          flagged: mergedFlagged,
         });
+
+        if (pendingSyncQueue.size > 0 && !d.isSubmitted) {
+          setTimeout(() => get().flushPendingAnswers(), 500);
+        }
 
         // Simpan sesiId & ujianId aktif ke localStorage
         if (typeof window !== "undefined") {

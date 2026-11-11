@@ -35,6 +35,7 @@ export default function StudentExamView() {
     selectAnswer,
     flagged,
     toggleFlag,
+    flushPendingAnswers,
     secondsRemaining,
     decrementTimer,
     violations,
@@ -91,11 +92,12 @@ export default function StudentExamView() {
     return () => clearInterval(interval);
   }, [decrementTimer, isSubmitted, totalQuestions]);
 
-  // Anti-Cheating: Visibility Change detection (Pindah tab/window)
+  // Anti-Cheating: Visibility Change detection + Flush pending answers on hide/close
   useEffect(() => {
     if (isSubmitted || totalQuestions === 0) return;
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        flushPendingAnswers({ keepalive: true });
         const nextCount = violations + 1;
         incrementViolations();
         setToastMessage(
@@ -105,9 +107,16 @@ export default function StudentExamView() {
         );
       }
     };
+    const handlePageHide = () => {
+      flushPendingAnswers({ keepalive: true });
+    };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [incrementViolations, isSubmitted, totalQuestions, violations, maxViolations]);
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [incrementViolations, flushPendingAnswers, isSubmitted, totalQuestions, violations, maxViolations]);
 
   // Polling cek pembukaan kunci oleh pengawas saat ujian terkunci
   useEffect(() => {
