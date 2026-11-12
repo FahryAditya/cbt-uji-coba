@@ -150,29 +150,64 @@ export default function ProctoringView() {
             />
           </div>
 
-          {/* Filter Pills */}
+          {/* Filter Pills dengan Material Icons */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
             {(
               [
-                { id: "all", label: "Semua Peserta" },
-                { id: "online", label: "🟢 Sedang Mengerjakan" },
-                { id: "not_started", label: "⚪ Belum Login" },
-                { id: "locked", label: "🚨 Terkunci / Curiga" },
-                { id: "completed", label: "✅ Selesai" },
+                {
+                  id: "all",
+                  label: "Semua Peserta",
+                  icon: "group",
+                  iconColor: "text-slate-500",
+                },
+                {
+                  id: "online",
+                  label: "Sedang Mengerjakan",
+                  icon: "radio_button_checked",
+                  iconColor: "text-emerald-500",
+                },
+                {
+                  id: "not_started",
+                  label: "Belum Login",
+                  icon: "radio_button_unchecked",
+                  iconColor: "text-slate-400",
+                },
+                {
+                  id: "locked",
+                  label: "Terkunci / Curiga",
+                  icon: "gpp_maybe",
+                  iconColor: "text-rose-500",
+                },
+                {
+                  id: "completed",
+                  label: "Selesai",
+                  icon: "check_circle",
+                  iconColor: "text-blue-500",
+                },
               ] as const
-            ).map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setFilterStatus(filter.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
-                  filterStatus === filter.id
-                    ? "bg-slate-800 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+            ).map((filter) => {
+              const active = filterStatus === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => setFilterStatus(filter.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                    active
+                      ? "bg-slate-800 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-rounded text-[16px] ${
+                      active ? "text-white" : filter.iconColor
+                    }`}
+                  >
+                    {filter.icon}
+                  </span>
+                  <span>{filter.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -307,15 +342,24 @@ export default function ProctoringView() {
                       <td className="py-3.5 px-3">
                         {s.violations >= 3 ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
-                            🚨 {s.violations}x (TERKUNCI)
+                            <span className="material-symbols-rounded text-[15px] text-rose-600">
+                              gpp_maybe
+                            </span>
+                            <span>{s.violations}x (TERKUNCI)</span>
                           </span>
                         ) : s.violations === 2 ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
-                            ⚠️ 2x (Hampir Kunci)
+                            <span className="material-symbols-rounded text-[15px] text-orange-600">
+                              warning
+                            </span>
+                            <span>2x (Hampir Kunci)</span>
                           </span>
                         ) : s.violations === 1 ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800">
-                            ⚠️ 1x Keluar
+                            <span className="material-symbols-rounded text-[15px] text-amber-600">
+                              warning
+                            </span>
+                            <span>1x Keluar</span>
                           </span>
                         ) : (
                           <span className="text-xs text-slate-400 font-medium">

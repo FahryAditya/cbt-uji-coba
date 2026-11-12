@@ -183,6 +183,8 @@ interface CBTAdminState {
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+let inFlightFetchAll: Promise<void> | null = null;
+
 export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   toast: null,
   showToast: (message, type = "success") => {
@@ -780,17 +782,25 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   isLoading: false,
 
   fetchAllData: async () => {
-    set({ isLoading: true });
-    try {
-      await Promise.allSettled([
-        get().fetchExams(),
-        get().fetchBankSoal(),
-        get().fetchClasses(),
-        get().fetchProctoring(),
-      ]);
-    } finally {
-      set({ isLoading: false });
+    // Deduplikasi pemanggilan paralel dari React StrictMode / refresh cepat
+    if (inFlightFetchAll) {
+      return inFlightFetchAll;
     }
+    set({ isLoading: true });
+    inFlightFetchAll = (async () => {
+      try {
+        await Promise.allSettled([
+          get().fetchExams(),
+          get().fetchBankSoal(),
+          get().fetchClasses(),
+          get().fetchProctoring(),
+        ]);
+      } finally {
+        inFlightFetchAll = null;
+        set({ isLoading: false });
+      }
+    })();
+    return inFlightFetchAll;
   },
 
   fetchBankSoal: async () => {
@@ -804,8 +814,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           await get().fetchQuestions(firstBankId);
         }
       }
-    } catch (err) {
-      console.error("Gagal fetch bank soal:", err);
+    } catch (err: any) {
+      console.warn("Gagal fetch bank soal:", err?.message || err);
     }
   },
 
@@ -861,8 +871,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           }
         }
       }
-    } catch (err) {
-      console.error("Gagal fetch exams:", err);
+    } catch (err: any) {
+      console.warn("Gagal fetch exams:", err?.message || err);
     }
   },
 
@@ -872,8 +882,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       if (res.data) {
         set({ availableClasses: res.data });
       }
-    } catch (err) {
-      console.error("Gagal fetch classes:", err);
+    } catch (err: any) {
+      console.warn("Gagal fetch classes:", err?.message || err);
     }
   },
 
@@ -890,8 +900,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
           set({ kpi: res.data.kpi });
         }
       }
-    } catch (err) {
-      console.error("Gagal fetch proctoring:", err);
+    } catch (err: any) {
+      console.warn("Gagal fetch proctoring:", err?.message || err);
     }
   },
 
@@ -916,8 +926,8 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
         }));
         set({ questions: formatted, activeBankSoalId: targetId });
       }
-    } catch (err) {
-      console.error("Gagal fetch questions:", err);
+    } catch (err: any) {
+      console.warn("Gagal fetch questions:", err?.message || err);
     }
   },
 }));

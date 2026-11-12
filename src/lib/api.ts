@@ -104,11 +104,35 @@ export async function apiRequest<T = any>(
   }
 
   const url = `${API_BASE_URL}${normalizedPath}`;
+  const method = (options.method || "GET").toUpperCase();
+  const maxAttempts = method === "GET" ? 3 : 1;
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let res: Response | null = null;
+  let lastNetworkError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      res = await fetch(url, {
+        ...options,
+        headers,
+      });
+      lastNetworkError = null;
+      break;
+    } catch (err) {
+      lastNetworkError = err;
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 350));
+      }
+    }
+  }
+
+  if (!res) {
+    const detail =
+      lastNetworkError instanceof Error ? lastNetworkError.message : "Network error";
+    throw new Error(
+      `Gagal terhubung ke server API (${detail}). Periksa koneksi internet Anda atau coba muat ulang.`
+    );
+  }
 
   const json = await res.json().catch(() => null);
 

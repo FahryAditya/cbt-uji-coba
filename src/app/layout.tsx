@@ -21,6 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${plusJakartaSans.variable} h-full antialiased`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..700,0..1,-50..200"
+        />
+      </head>
       <body className="min-h-full bg-slate-50 text-slate-800 font-sans">
         <Providers>{children}</Providers>
       </body>
