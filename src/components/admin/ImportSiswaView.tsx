@@ -31,6 +31,11 @@ interface RegisteredStudent {
   createdAt: string;
 }
 
+const sortByNamaAsc = <T extends { nama: string }>(list: T[]): T[] =>
+  [...list].sort((a, b) =>
+    a.nama.localeCompare(b.nama, "id", { sensitivity: "base" })
+  );
+
 export default function ImportSiswaView() {
   const { activeExamId, showToast, fetchClasses, fetchProctoring } = useCBTAdminStore();
 
@@ -59,7 +64,7 @@ export default function ImportSiswaView() {
     try {
       const res = await apiRequest<{ success: boolean; data: RegisteredStudent[] }>("/api/siswa");
       if (res.data && Array.isArray(res.data)) {
-        setRegisteredStudents(res.data);
+        setRegisteredStudents(sortByNamaAsc(res.data));
       }
     } catch (err: any) {
       console.error("Gagal memuat daftar siswa:", err);
@@ -139,7 +144,7 @@ export default function ImportSiswaView() {
         if (rows.length === 0) {
           showToast("Tidak ada data Nama & Kelas yang terbaca dari file CSV.", "error");
         } else {
-          setPreviewRows((prev) => [...prev, ...rows]);
+          setPreviewRows((prev) => sortByNamaAsc([...prev, ...rows]));
           showToast(`${rows.length} data siswa berhasil dibaca dari ${file.name}!`, "success");
         }
       } else if (ext === "xlsx" || ext === "xls") {
@@ -155,7 +160,7 @@ export default function ImportSiswaView() {
               }
             );
             if (res.data && res.data.length > 0) {
-              setPreviewRows((prev) => [...prev, ...res.data]);
+              setPreviewRows((prev) => sortByNamaAsc([...prev, ...res.data]));
               showToast(
                 `${res.data.length} data siswa berhasil dibaca dari Excel (${file.name})!`,
                 "success"
@@ -196,7 +201,7 @@ export default function ImportSiswaView() {
       );
       return;
     }
-    setPreviewRows((prev) => [...prev, ...rows]);
+    setPreviewRows((prev) => sortByNamaAsc([...prev, ...rows]));
     setPasteText("");
     showToast(`${rows.length} baris data siswa ditambahkan ke daftar pratinjau!`, "success");
   };
@@ -284,13 +289,15 @@ export default function ImportSiswaView() {
     new Set(registeredStudents.map((s) => s.kelas).filter((k) => k && k !== "-"))
   ).sort();
 
-  const filteredStudents = registeredStudents.filter((s) => {
-    const matchSearch =
-      s.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.kelas.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchClass = selectedClassFilter === "all" || s.kelas === selectedClassFilter;
-    return matchSearch && matchClass;
-  });
+  const filteredStudents = sortByNamaAsc(
+    registeredStudents.filter((s) => {
+      const matchSearch =
+        s.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.kelas.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchClass = selectedClassFilter === "all" || s.kelas === selectedClassFilter;
+      return matchSearch && matchClass;
+    })
+  );
 
   return (
     <div className="space-y-6">
