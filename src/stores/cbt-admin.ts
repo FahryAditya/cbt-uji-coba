@@ -158,6 +158,7 @@ interface CBTAdminState {
     token: string;
     autoRotateToken: boolean;
   }) => Promise<boolean>;
+  finishExamSession: (ujianId: string) => Promise<boolean>;
   updateExamSettings: (
     ujianId: string,
     settings: { kkm?: number; tampilkanNilai?: boolean; batasPelanggaran?: number }
@@ -648,6 +649,31 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       return false;
     } catch (err: any) {
       get().showToast(err?.message || "Gagal mengaktifkan sesi ujian.", "error");
+      return false;
+    }
+  },
+
+  finishExamSession: async (ujianId: string) => {
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        message?: string;
+        data?: { id: string; title: string; status: string; finalizedStudentsCount: number };
+      }>(`/api/ujian/${ujianId}/finish`, {
+        method: "PATCH",
+      });
+      await Promise.all([
+        get().fetchExams(),
+        get().fetchBankSoal(),
+        get().fetchProctoring(),
+      ]);
+      get().showToast(
+        res.message || "Sesi ujian berhasil diakhiri!",
+        "success"
+      );
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengakhiri sesi ujian.", "error");
       return false;
     }
   },

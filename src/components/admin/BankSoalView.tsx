@@ -25,9 +25,11 @@ import {
   LogOut,
   ChevronRight,
   Loader2,
+  StopCircle,
 } from "lucide-react";
 import ImportWordPanel from "./ImportWordPanel";
 import StartExamModal from "./StartExamModal";
+import EndExamModal from "./EndExamModal";
 
 type ViewMode = "folders" | "folder-files" | "builder";
 type BuilderTab = "manual" | "word";
@@ -60,8 +62,9 @@ export default function BankSoalView() {
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  // Start Exam modal target folder
+  // Start & End Exam modal target folder
   const [startTargetFolder, setStartTargetFolder] = useState<BankFolderItem | null>(null);
+  const [endTargetFolder, setEndTargetFolder] = useState<BankFolderItem | null>(null);
 
   // Manual question builder state
   const [questionText, setQuestionText] = useState("");
@@ -496,7 +499,7 @@ export default function BankSoalView() {
                       <span className="text-[10px] text-slate-400 font-medium">
                         Klik 2x untuk membuka
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleOpenFolder(folder)}
@@ -504,6 +507,17 @@ export default function BankSoalView() {
                         >
                           Buka
                         </button>
+                        {activeExamBadge && (
+                          <button
+                            type="button"
+                            onClick={() => setEndTargetFolder(folder)}
+                            title={`Akhiri sesi ujian aktif (${activeExamBadge.judul})`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold transition"
+                          >
+                            <StopCircle className="w-3 h-3" />
+                            <span>Akhiri Sesi</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setStartTargetFolder(folder)}
@@ -574,6 +588,17 @@ export default function BankSoalView() {
                 <Plus className="w-4 h-4" />
                 <span>Buat Soal</span>
               </button>
+
+              {activeFolder?.usedInExams?.some((u) => u.status === "AKTIF") && (
+                <button
+                  type="button"
+                  onClick={() => activeFolder && setEndTargetFolder(activeFolder)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition shadow-sm"
+                >
+                  <StopCircle className="w-4 h-4" />
+                  <span>Akhiri Sesi</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -921,6 +946,14 @@ export default function BankSoalView() {
         <StartExamModal
           folder={startTargetFolder}
           onClose={() => setStartTargetFolder(null)}
+        />
+      )}
+
+      {/* Modal End Exam (Akhiri Sesi) */}
+      {endTargetFolder && (
+        <EndExamModal
+          folder={endTargetFolder}
+          onClose={() => setEndTargetFolder(null)}
         />
       )}
 
