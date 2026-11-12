@@ -313,7 +313,7 @@ export default function SettingsView() {
                 step={0.5}
                 value={kkmInput}
                 onChange={(e) => setKkmInput(Number(e.target.value))}
-                className="w-32 px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-extrabold text-sky-700 focus:outline-none focus:border-sky-500"
+                className="w-32 px-3.5 py-2.5 rounded-xl border border-slate-200 text-base sm:text-sm font-extrabold text-sky-700 focus:outline-none focus:border-sky-500"
                 required
               />
               <span className="text-xs text-slate-500">
@@ -374,7 +374,7 @@ export default function SettingsView() {
                 step={1}
                 value={batasPelanggaranInput}
                 onChange={(e) => setBatasPelanggaranInput(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                className="w-24 px-3.5 py-2 rounded-xl border border-amber-300 bg-white text-sm font-extrabold text-amber-700 focus:outline-none focus:border-amber-500"
+                className="w-24 px-3.5 py-2 rounded-xl border border-amber-300 bg-white text-base sm:text-sm font-extrabold text-amber-700 focus:outline-none focus:border-amber-500"
               />
               <span className="text-xs font-bold text-slate-600">kali keluar</span>
             </div>
@@ -513,18 +513,18 @@ export default function SettingsView() {
           <>
             {/* Pencarian & Filter Status */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 sm:top-2.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari nama siswa atau kelas/jurusan..."
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-sky-500"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-base sm:text-xs focus:outline-none focus:border-sky-500"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+              <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
                 {(
                   [
                     { id: "all", label: "Semua" },
@@ -536,7 +536,7 @@ export default function SettingsView() {
                     key={tab.id}
                     type="button"
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                       statusFilter === tab.id
                         ? "bg-white text-slate-800 shadow-xs"
                         : "text-slate-500 hover:text-slate-700"
@@ -548,8 +548,71 @@ export default function SettingsView() {
               </div>
             </div>
 
-            {/* Tabel Daftar Nilai */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
+            {/* Tampilan Kartu Mobile (< md) */}
+            <div className="md:hidden space-y-2.5">
+              {isLoadingStats ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-sky-500" />
+                  Memuat nilai siswa...
+                </div>
+              ) : filteredScores.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  Belum ada data nilai siswa untuk ujian ini.
+                </div>
+              ) : (
+                filteredScores.map((s) => {
+                  const isPassed = s.score >= kkmInput;
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-3.5 rounded-2xl border border-slate-200/80 bg-white space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-slate-400">
+                              #{s.rank}
+                            </span>
+                            <span className="font-bold text-sm text-slate-800 truncate">
+                              {s.name}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{s.class}</div>
+                        </div>
+
+                        <span
+                          className={`text-base font-extrabold font-mono shrink-0 ${
+                            isPassed ? "text-emerald-600" : "text-rose-600"
+                          }`}
+                        >
+                          {s.score}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                        <div className="font-mono">
+                          <span className="text-emerald-600 font-bold">{s.correct} Benar</span>
+                          {" • "}
+                          <span className="text-rose-500 font-bold">{s.wrong} Salah</span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            isPassed
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {isPassed ? "Tuntas" : "Belum Tuntas"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Tabel Daftar Nilai Desktop (>= md) */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">

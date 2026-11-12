@@ -48,10 +48,19 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-canvas);
   color: var(--text-main);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .material-symbols-rounded {

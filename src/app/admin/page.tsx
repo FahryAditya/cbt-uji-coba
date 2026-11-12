@@ -36,7 +36,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden">
+    <div className="flex min-h-dvh bg-slate-50/50 overflow-x-clip">
       {/* Sidebar Navigasi (Drawer di Mobile/Tablet, Fixed di Desktop) */}
       <Sidebar
         isOpen={isMobileMenuOpen}
@@ -52,7 +52,7 @@ export default function AdminPage() {
         />
 
         {/* Dynamic Main Body Content */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {activeTab === "proctoring" && <ProctoringView />}
           {activeTab === "import-siswa" && <ImportSiswaView />}
           {activeTab === "bank-soal" && <BankSoalView />}

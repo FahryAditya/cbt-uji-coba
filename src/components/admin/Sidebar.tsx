@@ -77,7 +77,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 min-h-screen transition-transform duration-200 ease-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 min-h-dvh pb-[env(safe-area-inset-bottom)] overflow-y-auto transition-transform duration-200 ease-out lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

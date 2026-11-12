@@ -200,7 +200,7 @@ export default function StudentExamView() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 py-2 px-2 sm:py-6 sm:px-6 flex items-center justify-center">
+    <main className="min-h-dvh bg-slate-100 py-0 px-0 sm:py-6 sm:px-6 flex items-stretch sm:items-center justify-center">
       {/* Toast Notifikasi Floating */}
       {toastMessage && (
         <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-[11px] sm:text-xs px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 max-w-[90vw] truncate">
@@ -218,13 +218,13 @@ export default function StudentExamView() {
       )}
 
       {/* Main Container Card Ujian */}
-      <div className="w-full max-w-6xl min-h-[calc(100vh-1rem)] sm:min-h-[680px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl shadow-sky-500/10 border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
+      <div className="w-full max-w-6xl min-h-dvh sm:min-h-[680px] bg-white rounded-none sm:rounded-3xl shadow-2xl shadow-sky-500/10 border-x-0 sm:border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12 overflow-x-clip lg:overflow-hidden relative">
         
         {/* ========================================================
             KOLOM KIRI: SIDEBAR STEPPER NOMOR SOAL (Drawer di Mobile/Tablet, Fixed di lg+)
            ======================================================== */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:static lg:col-span-3 bg-slate-50 lg:bg-slate-50/70 border-r border-slate-200/80 p-5 flex flex-col justify-between transition-transform duration-200 ease-out lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:static lg:col-span-3 bg-slate-50 lg:bg-slate-50/70 border-r border-slate-200/80 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] flex flex-col justify-between transition-transform duration-200 ease-out lg:translate-x-0 ${
             showMobileNav ? "translate-x-0 shadow-2xl" : "-translate-x-full"
           }`}
         >
@@ -290,7 +290,7 @@ export default function StudentExamView() {
                       setCurrentQuestionIndex(i);
                       setShowMobileNav(false);
                     }}
-                    className={`h-9 rounded-xl text-xs flex items-center justify-center transition ${btnStyle}`}
+                    className={`h-11 sm:h-9 rounded-xl text-xs flex items-center justify-center transition ${btnStyle}`}
                   >
                     {qNum}
                   </button>
@@ -324,11 +324,11 @@ export default function StudentExamView() {
         {/* ========================================================
             KOLOM KANAN: LEMBAR SOAL UTAMA (lg:col-span-9)
            ======================================================== */}
-        <main className="lg:col-span-9 flex flex-col justify-between p-4 sm:p-6 md:p-8">
+        <main className="lg:col-span-9 flex flex-col justify-between min-h-dvh lg:min-h-0 p-0 sm:p-6 md:p-8">
           
-          {/* Header Soal & Timer */}
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100 mb-5 sm:mb-6">
+          {/* Header Soal & Timer (Sticky pada Mobile agar Timer & Daftar Soal tetap terlihat) */}
+          <div className="flex-1 flex flex-col">
+            <div className="sticky top-0 z-30 lg:static bg-white/95 lg:bg-transparent backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 px-3.5 py-3 sm:px-0 sm:py-0 sm:pb-4 border-b border-slate-100 mb-4 sm:mb-6">
               {/* Profil Siswa & Mapel */}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +342,7 @@ export default function StudentExamView() {
                     </span>
                   )}
                 </div>
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5 leading-snug">
+                <h1 className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5 leading-snug truncate">
                   {examTitle}
                 </h1>
                 <div className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate">
@@ -355,7 +355,7 @@ export default function StudentExamView() {
                 <button
                   type="button"
                   onClick={() => setShowMobileNav(true)}
-                  className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs transition"
+                  className="lg:hidden min-h-[40px] flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs transition"
                 >
                   <LayoutGrid className="w-4 h-4" />
                   <span>
@@ -363,13 +363,13 @@ export default function StudentExamView() {
                   </span>
                 </button>
 
-                <div className="flex items-center gap-2.5 sm:gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 sm:px-4 py-1.5 sm:py-2 shadow-xs">
+                <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 shadow-xs">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 animate-pulse shrink-0" />
                   <div>
                     <div className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                       Waktu Tersisa
                     </div>
-                    <div className="font-mono font-extrabold text-base sm:text-xl text-rose-600 tabular-digits leading-tight">
+                    <div className="font-mono font-extrabold text-sm sm:text-xl text-rose-600 tabular-digits leading-tight">
                       {formatTimer(secondsRemaining)}
                     </div>
                   </div>
@@ -379,9 +379,9 @@ export default function StudentExamView() {
 
             {/* Area Lembar Soal Aktif */}
             {currentQ && (
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6 px-3.5 sm:px-0 pb-6">
                 {/* Nomor Soal Badge & Bobot */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-8 h-8 rounded-xl bg-sky-500 text-white font-extrabold text-sm flex items-center justify-center shadow-sm">
                       {currentQNum}
@@ -399,22 +399,22 @@ export default function StudentExamView() {
                 </div>
 
                 {/* Teks Soal Riil dari Database NeonDB */}
-                <div className="text-base font-semibold text-slate-800 leading-relaxed whitespace-pre-wrap">
+                <div className="text-[15px] sm:text-base font-semibold text-slate-800 leading-relaxed whitespace-pre-wrap">
                   {currentQ.text}
                 </div>
 
                 {/* Gambar Soal (Jika Ada URL atau Diagram Geometri) */}
                 {currentQ.imageUrl ? (
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                  <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
                     <img
                       src={currentQ.imageUrl}
                       alt={`Gambar Soal Nomor ${currentQNum}`}
-                      className="max-h-64 rounded-lg object-contain"
+                      className="max-h-64 max-w-full rounded-lg object-contain"
                     />
                   </div>
                 ) : isGeometryQuestion ? (
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                    <svg width="340" height="190" viewBox="0 0 390 235" fill="none" className="max-w-full">
+                  <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <svg width="340" height="190" viewBox="0 0 390 235" fill="none" className="w-full max-w-[340px] h-auto">
                       <polygon points="62,195 335,195 253,36" stroke="#1E293B" strokeWidth="2.5" fill="#FFFFFF" strokeLinejoin="round" strokeLinecap="round" />
                       <text x="44" y="215" fill="#1E293B" fontWeight="800" fontSize="16">A</text>
                       <text x="342" y="215" fill="#1E293B" fontWeight="800" fontSize="16">B</text>
@@ -430,7 +430,7 @@ export default function StudentExamView() {
                 ) : null}
 
                 {/* Opsi Pilihan Jawaban Riil dari Database NeonDB */}
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3">
                   {currentQ.options.map((opt) => {
                     const isSelected = answers[currentQNum] === opt.label;
                     return (
@@ -440,7 +440,7 @@ export default function StudentExamView() {
                           selectAnswer(currentQNum, opt.label, opt.id);
                           setToastMessage(`Opsi ${opt.label} dipilih (Tersimpan otomatis)`);
                         }}
-                        className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 ${
+                        className={`w-full min-h-[52px] text-left p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center gap-3 sm:gap-4 ${
                           isSelected
                             ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/30 text-sky-950 font-bold shadow-xs"
                             : "bg-white border-slate-200 hover:border-sky-300 text-slate-700"
@@ -455,10 +455,10 @@ export default function StudentExamView() {
                         >
                           {opt.label}
                         </span>
-                        <div className="flex-1 text-sm">
+                        <div className="flex-1 text-sm leading-snug">
                           <div>{opt.text}</div>
                           {opt.imageUrl && (
-                            <img src={opt.imageUrl} alt={opt.label} className="mt-2 max-h-32 rounded" />
+                            <img src={opt.imageUrl} alt={opt.label} className="mt-2 max-h-32 max-w-full rounded" />
                           )}
                         </div>
                         {isSelected && (
@@ -472,12 +472,12 @@ export default function StudentExamView() {
             )}
           </div>
 
-          {/* Action Bar Bawah */}
-          <div className="pt-5 sm:pt-6 border-t border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 mt-6 sm:mt-8">
+          {/* Action Bar Bawah (Sticky di Mobile agar mudah dijangkau jempol) */}
+          <div className="sticky bottom-0 z-30 lg:static bg-white/95 lg:bg-transparent backdrop-blur-md px-3.5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:px-0 lg:pt-6 lg:pb-0 border-t border-slate-200/80 lg:border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 lg:mt-8">
             <button
               onClick={prevQuestion}
               disabled={currentQuestionIndex === 0}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs disabled:opacity-40 transition"
+              className="flex-1 sm:flex-none min-h-[44px] flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs disabled:opacity-40 transition"
             >
               <ChevronLeft className="w-4 h-4 shrink-0" />
               <span>Sebelumnya</span>
@@ -485,7 +485,7 @@ export default function StudentExamView() {
 
             <button
               onClick={() => toggleFlag(currentQNum)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold border transition ${
+              className={`flex-1 sm:flex-none min-h-[44px] flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold border transition ${
                 flagged[currentQNum]
                   ? "bg-amber-100 border-amber-300 text-amber-900"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -498,7 +498,7 @@ export default function StudentExamView() {
             {currentQuestionIndex === totalQuestions - 1 ? (
               <button
                 onClick={() => setShowSummaryModal(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/20"
+                className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/20"
               >
                 <span>Selesai & Kumpulkan</span>
                 <Send className="w-4 h-4 shrink-0" />
@@ -506,7 +506,7 @@ export default function StudentExamView() {
             ) : (
               <button
                 onClick={nextQuestion}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
+                className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
               >
                 <span>Selanjutnya</span>
                 <ChevronRight className="w-4 h-4 shrink-0" />
@@ -518,8 +518,8 @@ export default function StudentExamView() {
 
       {/* Modal Ringkasan Sebelum Submit */}
       {showSummaryModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-slate-800 text-base">
                 Konfirmasi Penyelesaian Ujian

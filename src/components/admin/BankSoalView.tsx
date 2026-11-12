@@ -358,7 +358,7 @@ export default function BankSoalView() {
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     placeholder="Contoh: PAS Ganjil XII — Pendidikan Pancasila"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-base sm:text-xs font-semibold focus:outline-none focus:border-indigo-500"
                     required
                   />
                 </div>
@@ -371,7 +371,7 @@ export default function BankSoalView() {
                     value={newFolderDesc}
                     onChange={(e) => setNewFolderDesc(e.target.value)}
                     placeholder="Contoh: Paket soal utama kelas XII seluruh jurusan"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-base sm:text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -557,14 +557,17 @@ export default function BankSoalView() {
                       className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2"
                       onDoubleClick={(e) => e.stopPropagation()}
                     >
-                      <span className="text-[10px] text-slate-400 font-medium">
+                      <span className="hidden sm:inline text-[10px] text-slate-400 font-medium">
                         Klik 2x untuk membuka
+                      </span>
+                      <span className="sm:hidden text-[10px] text-slate-400 font-medium">
+                        Ketuk Buka
                       </span>
                       <div className="flex flex-wrap items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleOpenFolder(folder)}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 text-[11px] font-bold transition"
+                          className="min-h-[34px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 text-[11px] font-bold transition"
                         >
                           Buka
                         </button>
@@ -1039,8 +1042,8 @@ export default function BankSoalView() {
 
       {/* Modal Edit Butir Soal */}
       {editingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
               <div className="flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-indigo-600" />
@@ -1050,7 +1053,7 @@ export default function BankSoalView() {
               </div>
               <button
                 onClick={closeEditModal}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1067,7 +1070,7 @@ export default function BankSoalView() {
                   min="0.5"
                   value={editPoints}
                   onChange={(e) => setEditPoints(parseFloat(e.target.value) || 1)}
-                  className="w-24 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
+                  className="w-24 px-3 py-1.5 rounded-lg border border-slate-200 text-base sm:text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -1079,13 +1082,13 @@ export default function BankSoalView() {
                   rows={4}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                  className="w-full p-3.5 rounded-xl border border-slate-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
                   required
                 />
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
                     Pilihan Jawaban (Tentukan Kunci Jawaban Benar)
                   </label>
@@ -1103,7 +1106,7 @@ export default function BankSoalView() {
                   {editOptions.map((opt, idx) => (
                     <div
                       key={idx}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition ${
+                      className={`flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 p-2.5 rounded-xl border transition ${
                         opt.isCorrect
                           ? "bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-400"
                           : "bg-white border-slate-200"
@@ -1115,7 +1118,7 @@ export default function BankSoalView() {
                         title={
                           opt.isCorrect ? "Kunci Jawaban Benar" : "Jadikan Kunci Jawaban"
                         }
-                        className={`w-7 h-7 rounded-full font-bold text-xs flex items-center justify-center shrink-0 transition ${
+                        className={`w-8 h-8 sm:w-7 sm:h-7 rounded-full font-bold text-xs flex items-center justify-center shrink-0 transition ${
                           opt.isCorrect
                             ? "bg-emerald-500 text-white shadow-xs"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -1129,7 +1132,7 @@ export default function BankSoalView() {
                         value={opt.text}
                         onChange={(e) => handleEditOptionChange(idx, e.target.value)}
                         placeholder={`Teks pilihan jawaban untuk opsi ${opt.label}...`}
-                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                        className="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg border border-slate-200 text-base sm:text-xs focus:outline-none focus:border-indigo-500"
                         required
                       />
 
@@ -1144,7 +1147,7 @@ export default function BankSoalView() {
                         <button
                           type="button"
                           onClick={() => removeEditOption(idx)}
-                          className="p-1 text-slate-400 hover:text-rose-500 transition"
+                          className="p-1.5 text-slate-400 hover:text-rose-500 transition ml-auto sm:ml-0"
                           title="Hapus opsi ini"
                         >
                           <Trash2 className="w-4 h-4" />

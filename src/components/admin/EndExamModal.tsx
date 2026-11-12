@@ -45,8 +45,8 @@ export default function EndExamModal({ folder, onClose }: EndExamModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-rose-200 space-y-5">
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-rose-200 space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 pb-3.5 border-b border-slate-100">
           <div className="flex items-start gap-3">

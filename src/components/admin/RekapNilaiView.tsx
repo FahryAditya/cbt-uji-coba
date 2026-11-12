@@ -388,7 +388,7 @@ export default function RekapNilaiView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari nama siswa atau kelas..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-sky-500"
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-base sm:text-xs focus:outline-none focus:border-sky-500"
             />
           </div>
 
@@ -397,7 +397,7 @@ export default function RekapNilaiView() {
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500"
+              className="py-2 px-3 rounded-xl border border-slate-200 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500"
             >
               <option value="all">Semua Kelas</option>
               {availableClasses.map((cls) => (
@@ -423,7 +423,7 @@ export default function RekapNilaiView() {
                 "info"
               );
             }}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition ${
+            className={`min-h-[40px] flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition ${
               enableViewAnswers
                 ? "bg-indigo-50 border-indigo-200 text-indigo-700"
                 : "bg-slate-50 border-slate-200 text-slate-500"
@@ -445,7 +445,7 @@ export default function RekapNilaiView() {
               max="100"
               value={kkm}
               onChange={(e) => setKkm(Number(e.target.value))}
-              className="w-16 px-2 py-1 text-center font-bold text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-sky-500"
+              className="w-16 px-2 py-1 text-center font-bold text-base sm:text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-sky-500"
             />
             <button
               type="button"
@@ -476,99 +476,179 @@ export default function RekapNilaiView() {
             Belum ada data pengerjaan ujian siswa untuk sesi ini.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 text-slate-400 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
-                  <th className="py-3.5 px-4 w-12 text-center">No</th>
-                  <th className="py-3.5 px-4">Nama Siswa</th>
-                  <th className="py-3.5 px-4">Kelas & Jurusan</th>
-                  <th className="py-3.5 px-4 text-center">Benar</th>
-                  <th className="py-3.5 px-4 text-center">Salah</th>
-                  <th className="py-3.5 px-4 text-center">Nilai Akhir</th>
-                  <th className="py-3.5 px-4 text-center">Minimal KKM</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                  {enableViewAnswers && (
-                    <th className="py-3.5 px-4 text-center">Hasil Jawaban</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredStudents.map((s, idx) => {
-                  const isPassed = s.score >= kkm;
-                  return (
-                    <tr key={s.id || s.nis || idx} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-400">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-800">{s.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{s.nis}</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-600">
-                        {s.class}
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-semibold text-emerald-600">
-                        {s.correct}
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-semibold text-rose-500">
-                        {s.wrong}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`font-mono font-extrabold text-sm px-2.5 py-1 rounded-lg ${
-                            isPassed
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-rose-50 text-rose-700 border border-rose-200"
-                          }`}
-                        >
-                          {s.score}
+          <>
+            {/* Tampilan Kartu Mobile (< md) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredStudents.map((s, idx) => {
+                const isPassed = s.score >= kkm;
+                return (
+                  <div key={s.id || s.nis || idx} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-400">
+                            #{idx + 1}
+                          </span>
+                          <h4 className="font-bold text-sm text-slate-800 truncate">
+                            {s.name}
+                          </h4>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="font-semibold text-slate-700">{s.class}</span>
+                          <span>•</span>
+                          <span className="font-mono text-slate-400">{s.nis}</span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`font-mono font-extrabold text-base px-3 py-1 rounded-xl shrink-0 ${
+                          isPassed
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}
+                      >
+                        {s.score}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-3">
+                        <span className="text-emerald-600 font-bold">
+                          Benar: {s.correct}
                         </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-500">
-                        {kkm}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
-                            isPassed
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-rose-100 text-rose-800"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isPassed ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
-                          ></span>
-                          <span>{isPassed ? "Tuntas" : "Belum Tuntas"}</span>
+                        <span className="text-rose-500 font-bold">
+                          Salah: {s.wrong}
                         </span>
-                      </td>
-                      {enableViewAnswers && (
-                        <td className="py-3.5 px-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetailAnswers(s.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] transition"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Lihat Jawaban</span>
-                          </button>
+                        <span className="text-slate-400 font-mono">
+                          KKM {kkm}
+                        </span>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          isPassed
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isPassed ? "bg-emerald-500" : "bg-rose-500"
+                          }`}
+                        ></span>
+                        <span>{isPassed ? "Tuntas" : "Belum Tuntas"}</span>
+                      </span>
+                    </div>
+
+                    {enableViewAnswers && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetailAnswers(s.id)}
+                        className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Lihat Hasil Jawaban</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Tabel Desktop (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-400 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-3.5 px-4 w-12 text-center">No</th>
+                    <th className="py-3.5 px-4">Nama Siswa</th>
+                    <th className="py-3.5 px-4">Kelas & Jurusan</th>
+                    <th className="py-3.5 px-4 text-center">Benar</th>
+                    <th className="py-3.5 px-4 text-center">Salah</th>
+                    <th className="py-3.5 px-4 text-center">Nilai Akhir</th>
+                    <th className="py-3.5 px-4 text-center">Minimal KKM</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
+                    {enableViewAnswers && (
+                      <th className="py-3.5 px-4 text-center">Hasil Jawaban</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredStudents.map((s, idx) => {
+                    const isPassed = s.score >= kkm;
+                    return (
+                      <tr key={s.id || s.nis || idx} className="hover:bg-slate-50/60 transition">
+                        <td className="py-3.5 px-4 text-center font-bold text-slate-400">
+                          {idx + 1}
                         </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-800">{s.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{s.nis}</div>
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-600">
+                          {s.class}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-semibold text-emerald-600">
+                          {s.correct}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-semibold text-rose-500">
+                          {s.wrong}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span
+                            className={`font-mono font-extrabold text-sm px-2.5 py-1 rounded-lg ${
+                              isPassed
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                            }`}
+                          >
+                            {s.score}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-500">
+                          {kkm}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
+                              isPassed
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-rose-100 text-rose-800"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isPassed ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
+                            ></span>
+                            <span>{isPassed ? "Tuntas" : "Belum Tuntas"}</span>
+                          </span>
+                        </td>
+                        {enableViewAnswers && (
+                          <td className="py-3.5 px-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetailAnswers(s.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] transition"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Lihat Jawaban</span>
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* 5. Modal Detail Hasil Jawaban Soal yang Benar dan Salah */}
       {detailModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90dvh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
             {/* Header Modal */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div>

@@ -155,8 +155,8 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-5">
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-xl w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 pb-3.5 border-b border-slate-100">
           <div className="flex items-start gap-3">
@@ -311,7 +311,7 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="Contoh: PAS Ganjil — Kelas XII"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-base sm:text-xs font-semibold"
                     required
                   />
                 </div>
@@ -321,7 +321,7 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                     type="text"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-base sm:text-xs font-semibold"
                     required
                   />
                 </div>
@@ -333,7 +333,7 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                     step={5}
                     value={newDuration}
                     onChange={(e) => setNewDuration(Number(e.target.value) || 60)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-base sm:text-xs font-bold"
                     required
                   />
                 </div>
@@ -366,12 +366,12 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                     placeholder="Tambah kelas baru (mis. X DKV)..."
                     value={newClassInput}
                     onChange={(e) => setNewClassInput(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-base sm:text-xs"
                   />
                   <button
                     type="button"
                     onClick={handleAddQuickClass}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-bold"
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-bold shrink-0"
                   >
                     + Kelas
                   </button>
@@ -392,7 +392,7 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
                 placeholder="Contoh: PANCASILA-12 atau CBT-4821"
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-sky-300 bg-white text-sm font-mono font-extrabold text-sky-700 tracking-wider uppercase focus:outline-none focus:border-sky-500"
+                className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-sky-300 bg-white text-base sm:text-sm font-mono font-extrabold text-sky-700 tracking-wider uppercase focus:outline-none focus:border-sky-500"
                 required
               />
               <button

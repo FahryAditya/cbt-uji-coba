@@ -31,8 +31,8 @@ export default function BroadcastModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
@@ -63,7 +63,7 @@ export default function BroadcastModal({
             <select
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-base sm:text-sm focus:outline-none focus:border-sky-500"
             >
               <option value="all">Seluruh Siswa yang Sedang Ujian (Semua Kelas)</option>
               {availableClasses.map((cls) => (
@@ -83,7 +83,7 @@ export default function BroadcastModal({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Contoh: Perhatian seluruh peserta, waktu tersisa 15 menit. Pastikan nomor 7 dicek kembali..."
-              className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500"
+              className="w-full p-3 rounded-xl border border-slate-200 text-base sm:text-sm focus:outline-none focus:border-sky-500"
               required
             />
           </div>

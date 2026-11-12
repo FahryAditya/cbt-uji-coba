@@ -109,7 +109,7 @@ export default function JadwalView() {
                 placeholder="Contoh: Penilaian Akhir Semester (PAS) — Pendidikan Pancasila XII"
                 value={examTitle}
                 onChange={(e) => setExamTitle(e.target.value)}
-                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                className="w-full p-3 rounded-xl border border-slate-200 text-base sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                 required
               />
             </div>
@@ -124,7 +124,7 @@ export default function JadwalView() {
                 placeholder="Contoh: Pendidikan Pancasila"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                className="w-full p-2.5 rounded-xl border border-slate-200 text-base sm:text-xs font-semibold focus:outline-none focus:border-sky-500"
                 required
               />
             </div>
@@ -141,7 +141,7 @@ export default function JadwalView() {
                   step="5"
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 60)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-sky-500"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-base sm:text-xs font-bold focus:outline-none focus:border-sky-500"
                   required
                 />
                 <span className="text-xs font-semibold text-slate-500">Menit</span>
@@ -158,7 +158,7 @@ export default function JadwalView() {
                   type="text"
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-mono font-bold text-sky-600 focus:outline-none focus:border-sky-500 uppercase"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-base sm:text-xs font-mono font-bold text-sky-600 focus:outline-none focus:border-sky-500 uppercase"
                   required
                 />
                 <button

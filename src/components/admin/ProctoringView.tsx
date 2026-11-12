@@ -146,7 +146,7 @@ export default function ProctoringView() {
               placeholder="Cari nama siswa, NISN, atau kelas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
             />
           </div>
 
@@ -211,8 +211,204 @@ export default function ProctoringView() {
           </div>
         </div>
 
-        {/* Tabel Data Siswa Realtime */}
-        <div className="overflow-x-auto mt-4">
+        {/* Tampilan Kartu Mobile (< md) */}
+        <div className="md:hidden mt-4 space-y-3">
+          {filteredStudents.length === 0 ? (
+            <div className="py-10 text-center text-slate-400 text-xs font-semibold">
+              Tidak ada siswa yang sesuai dengan filter atau pencarian saat ini.
+            </div>
+          ) : (
+            filteredStudents.map((s) => {
+              const progressPct = s.totalQ > 0 ? Math.round((s.progress / s.totalQ) * 100) : 0;
+              const isLockedStudent = s.isLocked || s.status === "locked" || s.violations >= 3;
+              const studentIdParam = s.siswaId || s.id;
+
+              return (
+                <div
+                  key={s.id}
+                  className={`p-3.5 rounded-2xl border space-y-3 ${
+                    isLockedStudent
+                      ? "bg-rose-50/60 border-rose-200"
+                      : "bg-white border-slate-200/80"
+                  }`}
+                >
+                  {/* Header Kartu: Nama, Kelas, Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-9 h-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                          isLockedStudent
+                            ? "bg-rose-100 text-rose-700 ring-2 ring-rose-400"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {s.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-slate-800 truncate flex items-center gap-1">
+                          <span className="truncate">{s.name}</span>
+                          {isLockedStudent && <Lock className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <span className="font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {s.class}
+                          </span>
+                          <span className="font-mono text-slate-400 truncate">NIS: {s.nis}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isLockedStudent ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300 animate-pulse">
+                          <Lock className="w-3 h-3" />
+                          Terkunci
+                        </span>
+                      ) : s.status === "online" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Sedang Ujian
+                        </span>
+                      ) : s.status === "completed" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                          <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                          Selesai
+                        </span>
+                      ) : s.status === "idle" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          Idle
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                          Belum Login
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progres Bar */}
+                  <div>
+                    <div className="flex justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                      <span>Progres: {s.progress}/{s.totalQ} Soal</span>
+                      <span className={progressPct === 100 ? "text-emerald-600 font-bold" : "text-sky-600 font-bold"}>
+                        {progressPct}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          progressPct === 100 ? "bg-emerald-500" : "bg-sky-500"
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Info Pelanggaran & Sisa Waktu */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div>
+                      {s.violations >= 3 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                          <span className="material-symbols-rounded text-[14px] text-rose-600">gpp_maybe</span>
+                          <span>{s.violations}x (TERKUNCI)</span>
+                        </span>
+                      ) : s.violations === 2 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                          <span className="material-symbols-rounded text-[14px] text-orange-600">warning</span>
+                          <span>2x (Hampir Kunci)</span>
+                        </span>
+                      ) : s.violations === 1 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-800">
+                          <span className="material-symbols-rounded text-[14px] text-amber-600">warning</span>
+                          <span>1x Keluar</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium">0x Pelanggaran</span>
+                      )}
+                    </div>
+
+                    <div
+                      className={`font-mono font-bold text-xs ${
+                        s.timeLeft === "00:00:00" ? "text-slate-400" : "text-slate-700"
+                      }`}
+                    >
+                      ⏱ {s.timeLeft}
+                    </div>
+                  </div>
+
+                  {/* Aksi Intervensi Admin */}
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-end gap-2">
+                    {isLockedStudent && (
+                      <button
+                        onClick={async () => {
+                          await unlockStudent(studentIdParam, s.sesiId);
+                        }}
+                        className="flex-1 min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                      >
+                        <Unlock className="w-3.5 h-3.5" />
+                        <span>Buka Kunci</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={async () => {
+                        const confirmReset = window.confirm(
+                          `Perhatian: Apakah Anda yakin ingin mereset seluruh jawaban siswa "${s.name}"? Semua jawaban yang telah dikerjakan akan dihapus dan nilai diset ulang ke 0.`
+                        );
+                        if (confirmReset) {
+                          await resetStudentAnswers(studentIdParam, s.sesiId);
+                        }
+                      }}
+                      title="Reset Seluruh Jawaban Siswa"
+                      className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition"
+                    >
+                      <FileX className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        resetStudentLogin(studentIdParam, s.sesiId);
+                      }}
+                      title="Reset Login (Siswa berganti perangkat)"
+                      className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 transition"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        addStudentTime(studentIdParam, 10);
+                      }}
+                      title="Tambah Waktu +10 Menit"
+                      className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        warnStudent(studentIdParam);
+                      }}
+                      title="Kirim Peringatan Langsung"
+                      className="min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 transition"
+                    >
+                      <AlertOctagon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Tabel Data Siswa Realtime Desktop (>= md) */}
+        <div className="hidden md:block overflow-x-auto mt-4">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-slate-400 text-xs font-semibold uppercase tracking-wider">
