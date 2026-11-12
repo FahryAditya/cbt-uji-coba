@@ -28,7 +28,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("cbt_user");
+      const stored =
+        localStorage.getItem("cbt_admin_user") || localStorage.getItem("cbt_user");
       if (stored) {
         try {
           const parsed = JSON.parse(stored);

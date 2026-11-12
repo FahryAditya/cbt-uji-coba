@@ -14,7 +14,7 @@ import {
   Layers,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getValidAdminToken, getValidStudentToken } from "@/lib/api";
 import { useCBTExamStore } from "@/stores/cbt-exam";
 
 export default function HomePage() {
@@ -71,6 +71,8 @@ export default function HomePage() {
           throw new Error("Akun siswa tidak memiliki hak akses Guru/Admin.");
         }
 
+        // Amankan sesi siswa lama sebelum membersihkan key legacy
+        getValidStudentToken();
         localStorage.setItem("cbt_admin_token", res.data.token);
         localStorage.setItem("cbt_admin_user", JSON.stringify(res.data.user));
         localStorage.removeItem("cbt_token");
@@ -115,6 +117,8 @@ export default function HomePage() {
           throw new Error(res.message || "Gagal memverifikasi peserta ujian");
         }
 
+        // Amankan sesi admin lama sebelum membersihkan key legacy
+        getValidAdminToken();
         localStorage.setItem("cbt_student_token", res.data.token);
         localStorage.setItem("cbt_student_user", JSON.stringify(res.data.user));
         localStorage.removeItem("cbt_token");

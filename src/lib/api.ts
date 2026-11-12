@@ -13,7 +13,8 @@ function decodeJwtRole(token: string | null): string | null {
     const parts = token.split(".");
     if (parts.length < 2) return null;
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(atob(b64));
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
     return typeof payload?.role === "string" ? payload.role : null;
   } catch {
     return null;
@@ -27,9 +28,14 @@ export function getValidStudentToken(): string | null {
     return studentTok;
   }
 
-  // Fallback hanya jika token legacy benar-benar ber-role SISWA (blokir token ADMIN/GURU)
+  // Fallback & migrasi otomatis hanya jika token legacy ber-role SISWA (blokir token ADMIN/GURU)
   const legacyTok = localStorage.getItem("cbt_token");
   if (legacyTok && decodeJwtRole(legacyTok) === "SISWA") {
+    localStorage.setItem("cbt_student_token", legacyTok);
+    const legacyUser = localStorage.getItem("cbt_user");
+    if (legacyUser && !localStorage.getItem("cbt_student_user")) {
+      localStorage.setItem("cbt_student_user", legacyUser);
+    }
     return legacyTok;
   }
   return null;
@@ -46,6 +52,11 @@ export function getValidAdminToken(): string | null {
   const legacyTok = localStorage.getItem("cbt_token");
   const legacyRole = decodeJwtRole(legacyTok);
   if (legacyTok && (legacyRole === "ADMIN" || legacyRole === "GURU")) {
+    localStorage.setItem("cbt_admin_token", legacyTok);
+    const legacyUser = localStorage.getItem("cbt_user");
+    if (legacyUser && !localStorage.getItem("cbt_admin_user")) {
+      localStorage.setItem("cbt_admin_user", legacyUser);
+    }
     return legacyTok;
   }
   return null;

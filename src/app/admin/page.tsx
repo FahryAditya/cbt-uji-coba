@@ -11,14 +11,23 @@ import RekapNilaiView from "@/components/admin/RekapNilaiView";
 import SettingsView from "@/components/admin/SettingsView";
 import BroadcastModal from "@/components/admin/BroadcastModal";
 import { useCBTAdminStore } from "@/stores/cbt-admin";
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
+import { getValidAdminToken } from "@/lib/api";
+import { CheckCircle2, AlertCircle, Info, X, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminPage() {
   const { activeTab, fetchAllData, toast, clearToast, showToast } = useCBTAdminStore();
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasAdminSession, setHasAdminSession] = useState(true);
 
   React.useEffect(() => {
+    const token = getValidAdminToken();
+    if (!token) {
+      setHasAdminSession(false);
+      return;
+    }
+    setHasAdminSession(true);
     fetchAllData();
   }, [fetchAllData]);
 
@@ -88,6 +97,31 @@ export default function AdminPage() {
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* Modal Sesi Admin Hilang / Perlu Login Ulang */}
+      {!hasAdminSession && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-amber-200 space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-800">
+                Sesi Login Admin Diperlukan
+              </h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Token autentikasi Guru/Admin belum tersimpan atau sudah terhapus di browser ini. Silakan login kembali di tab <strong>Guru &amp; Admin</strong> untuk melakukan perubahan data.
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition shadow-sm"
+            >
+              Masuk Kembali ke Halaman Login Admin
+            </Link>
+          </div>
         </div>
       )}
     </div>
