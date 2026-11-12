@@ -7,6 +7,50 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+function decodeJwtRole(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(b64));
+    return typeof payload?.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getValidStudentToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const studentTok = localStorage.getItem("cbt_student_token");
+  if (studentTok && decodeJwtRole(studentTok) === "SISWA") {
+    return studentTok;
+  }
+
+  // Fallback hanya jika token legacy benar-benar ber-role SISWA (blokir token ADMIN/GURU)
+  const legacyTok = localStorage.getItem("cbt_token");
+  if (legacyTok && decodeJwtRole(legacyTok) === "SISWA") {
+    return legacyTok;
+  }
+  return null;
+}
+
+export function getValidAdminToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const adminTok = localStorage.getItem("cbt_admin_token");
+  const adminRole = decodeJwtRole(adminTok);
+  if (adminTok && (adminRole === "ADMIN" || adminRole === "GURU")) {
+    return adminTok;
+  }
+
+  const legacyTok = localStorage.getItem("cbt_token");
+  const legacyRole = decodeJwtRole(legacyTok);
+  if (legacyTok && (legacyRole === "ADMIN" || legacyRole === "GURU")) {
+    return legacyTok;
+  }
+  return null;
+}
+
 function resolveAuthToken(normalizedPath: string): string | null {
   if (typeof window === "undefined") return null;
 
@@ -14,11 +58,8 @@ function resolveAuthToken(normalizedPath: string): string | null {
     normalizedPath.startsWith("/api/exam") ||
     normalizedPath.startsWith("/api/auth/student");
 
-  if (isStudentEndpoint) {
-    return (
-      localStorage.getItem("cbt_student_token") ||
-      localStorage.getItem("cbt_token")
-    );
+  if (isStudentEndpoint || window.location.pathname.startsWith("/ujian")) {
+    return getValidStudentToken();
   }
 
   const isAdminRoute = window.location.pathname.startsWith("/admin");
@@ -30,17 +71,10 @@ function resolveAuthToken(normalizedPath: string): string | null {
     normalizedPath.startsWith("/api/siswa");
 
   if (isAdminRoute || isAdminEndpoint) {
-    return (
-      localStorage.getItem("cbt_admin_token") ||
-      localStorage.getItem("cbt_token")
-    );
+    return getValidAdminToken();
   }
 
-  return (
-    localStorage.getItem("cbt_student_token") ||
-    localStorage.getItem("cbt_admin_token") ||
-    localStorage.getItem("cbt_token")
-  );
+  return getValidStudentToken() || getValidAdminToken();
 }
 
 export async function apiRequest<T = any>(

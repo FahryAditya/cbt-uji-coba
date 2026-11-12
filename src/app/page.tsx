@@ -73,6 +73,8 @@ export default function HomePage() {
 
         localStorage.setItem("cbt_admin_token", res.data.token);
         localStorage.setItem("cbt_admin_user", JSON.stringify(res.data.user));
+        localStorage.removeItem("cbt_token");
+        localStorage.removeItem("cbt_user");
         router.push("/admin");
       } else {
         // Peserta Siswa: Nama Lengkap (persis DB), Kelas, Jurusan, Token Ujian
@@ -115,6 +117,8 @@ export default function HomePage() {
 
         localStorage.setItem("cbt_student_token", res.data.token);
         localStorage.setItem("cbt_student_user", JSON.stringify(res.data.user));
+        localStorage.removeItem("cbt_token");
+        localStorage.removeItem("cbt_user");
 
         const examStart = await startExamWithToken(
           tokenInput.trim().toUpperCase(),

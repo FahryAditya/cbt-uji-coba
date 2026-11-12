@@ -143,10 +143,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         {/* Bagian Bawah: Switch ke Halaman Siswa & Logout */}
         <div className="p-4 border-t border-slate-100 space-y-2">
           <Link
-            href="/ujian"
+            href="/"
             className="flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-xs transition"
           >
-            <span>Buka Layar Ujian Siswa</span>
+            <span>Buka Login Ujian Siswa</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
           <div

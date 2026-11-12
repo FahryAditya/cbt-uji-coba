@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getValidStudentToken } from "@/lib/api";
 
 export interface StudentExamOption {
   id: string;
@@ -478,6 +478,15 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
 
   initExamFromStorage: async () => {
     if (typeof window === "undefined") return false;
+    const studentToken = getValidStudentToken();
+    if (!studentToken) {
+      localStorage.removeItem("cbt_active_sesi");
+      localStorage.removeItem("cbt_active_ujian");
+      localStorage.removeItem("cbt_active_token");
+      localStorage.removeItem("cbt_student_token");
+      return false;
+    }
+
     const token = localStorage.getItem("cbt_active_token") || "";
     const ujianId = localStorage.getItem("cbt_active_ujian") || undefined;
     if (token || ujianId) {
