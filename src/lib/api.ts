@@ -65,6 +65,14 @@ export function getValidAdminToken(): string | null {
 function resolveAuthToken(normalizedPath: string): string | null {
   if (typeof window === "undefined") return null;
 
+  // Endpoint login publik tidak boleh melampirkan Authorization token sesi sebelumnya
+  if (
+    normalizedPath === "/api/auth/login" ||
+    normalizedPath === "/api/auth/student-enter"
+  ) {
+    return null;
+  }
+
   const isStudentEndpoint =
     normalizedPath.startsWith("/api/exam") ||
     normalizedPath.startsWith("/api/auth/student");

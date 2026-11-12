@@ -106,9 +106,9 @@ export default function HomePage() {
         }>("/api/auth/student-enter", {
           method: "POST",
           body: JSON.stringify({
-            nama: studentName, // dikirim persis sesuai ketikan user (exact match case-sensitive)
-            kelas: studentClass.trim(),
-            jurusan: studentMajor.trim(),
+            nama: studentName.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim(), // kapitalisasi tetap persis, hanya rapikan spasi pinggir/ganda
+            kelas: studentClass.replace(/\s+/g, " ").trim(),
+            jurusan: studentMajor.replace(/\s+/g, " ").trim(),
             tokenUjian: tokenInput.trim().toUpperCase(),
           }),
         });
