@@ -6,6 +6,7 @@ import Navbar from "@/components/admin/Navbar";
 import ProctoringView from "@/components/admin/ProctoringView";
 import ImportSiswaView from "@/components/admin/ImportSiswaView";
 import BankSoalView from "@/components/admin/BankSoalView";
+import SoftfileView from "@/components/admin/SoftfileView";
 import JadwalView from "@/components/admin/JadwalView";
 import RekapNilaiView from "@/components/admin/RekapNilaiView";
 import SettingsView from "@/components/admin/SettingsView";
@@ -56,6 +57,7 @@ export default function AdminPage() {
           {activeTab === "proctoring" && <ProctoringView />}
           {activeTab === "import-siswa" && <ImportSiswaView />}
           {activeTab === "bank-soal" && <BankSoalView />}
+          {activeTab === "softfile" && <SoftfileView />}
           {activeTab === "jadwal" && <JadwalView />}
           {activeTab === "nilai" && <RekapNilaiView />}
           {activeTab === "settings" && <SettingsView />}

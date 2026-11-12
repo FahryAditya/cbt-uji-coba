@@ -83,8 +83,8 @@ export interface ExamPackage {
 
 interface CBTAdminState {
   // Navigation & Active tab
-  activeTab: "proctoring" | "import-siswa" | "bank-soal" | "jadwal" | "nilai" | "settings";
-  setActiveTab: (tab: "proctoring" | "import-siswa" | "bank-soal" | "jadwal" | "nilai" | "settings") => void;
+  activeTab: "proctoring" | "import-siswa" | "bank-soal" | "softfile" | "jadwal" | "nilai" | "settings";
+  setActiveTab: (tab: "proctoring" | "import-siswa" | "bank-soal" | "softfile" | "jadwal" | "nilai" | "settings") => void;
 
   // Active Session & Token
   activeExamId: string;
