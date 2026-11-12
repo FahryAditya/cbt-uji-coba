@@ -41,6 +41,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
+      localStorage.removeItem("cbt_admin_token");
+      localStorage.removeItem("cbt_admin_user");
       localStorage.removeItem("cbt_token");
       localStorage.removeItem("cbt_user");
       window.location.href = "/";

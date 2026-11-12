@@ -87,6 +87,9 @@ interface CBTExamState {
 
   // Submission
   isSubmitted: boolean;
+  autoSubmitTriggered: boolean;
+  submitError: string | null;
+  clearSubmitError: () => void;
   scoreResult: number | null;
   examKkm: number;
   submitExam: () => Promise<void>;
@@ -130,6 +133,9 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   isLocked: false,
   setIsLocked: (locked) => set({ isLocked: locked }),
   isSubmitted: false,
+  autoSubmitTriggered: false,
+  submitError: null,
+  clearSubmitError: () => set({ submitError: null }),
   scoreResult: null,
   examKkm: 75,
   isLoading: false,
@@ -247,8 +253,15 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     set((state) => {
       if (state.isLocked) return state; // Bekukan timer saat ujian terkunci
       const nextTime = Math.max(0, state.secondsRemaining - 1);
-      if (nextTime === 0 && !state.isSubmitted && state.questions.length > 0) {
+      if (
+        nextTime === 0 &&
+        !state.isSubmitted &&
+        !state.autoSubmitTriggered &&
+        !state.isLoading &&
+        state.questions.length > 0
+      ) {
         setTimeout(() => get().submitExam(), 0);
+        return { secondsRemaining: nextTime, autoSubmitTriggered: true };
       }
       return { secondsRemaining: nextTime };
     }),
@@ -296,12 +309,23 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
     try {
       const res = await apiRequest<{
         success: boolean;
-        data?: { status: string; isLocked: boolean; violations: number };
+        data?: {
+          status: string;
+          isLocked: boolean;
+          isSubmitted?: boolean;
+          score?: number | null;
+          kkm?: number;
+          violations: number;
+        };
       }>(`/api/exam/status/${sesiId}`);
       if (res.data) {
-        const locked = res.data.isLocked || res.data.status === "TERKUNCI";
+        const submitted = Boolean(res.data.isSubmitted || res.data.status === "SELESAI");
+        const locked = !submitted && (res.data.isLocked || res.data.status === "TERKUNCI");
         set({
           isLocked: locked,
+          isSubmitted: submitted ? true : get().isSubmitted,
+          scoreResult: submitted ? (res.data.score ?? get().scoreResult) : get().scoreResult,
+          examKkm: res.data.kkm ?? get().examKkm,
           violations: res.data.violations ?? get().violations,
         });
         return locked;
@@ -313,9 +337,9 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
   },
 
   submitExam: async () => {
-    const { sesiId, ujianId } = get();
-    if (!sesiId || !ujianId) return;
-    set({ isLoading: true });
+    const { sesiId, ujianId, isLoading, isSubmitted } = get();
+    if (!sesiId || !ujianId || isLoading || isSubmitted) return;
+    set({ isLoading: true, submitError: null });
     try {
       // Pastikan seluruh jawaban di antrean debounce sudah terkirim sebelum koreksi submit
       await get().flushPendingAnswers();
@@ -329,11 +353,15 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
       pendingSyncQueue.clear();
       set({
         isSubmitted: true,
+        submitError: null,
         scoreResult: res.data?.score ?? null,
         examKkm: res.data?.kkm ?? get().examKkm,
       });
-    } catch (err) {
+    } catch (err: any) {
+      const msg =
+        err?.message || "Gagal mengirim jawaban ke server. Silakan periksa koneksi atau masuk ulang.";
       console.error("Gagal submit ujian:", err);
+      set({ submitError: msg });
     } finally {
       set({ isLoading: false });
     }
@@ -369,7 +397,10 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           })),
         }));
 
-        const userStr = typeof window !== "undefined" ? localStorage.getItem("cbt_user") : null;
+        const userStr =
+          typeof window !== "undefined"
+            ? localStorage.getItem("cbt_student_user") || localStorage.getItem("cbt_user")
+            : null;
         const userObj = userStr ? JSON.parse(userStr) : null;
 
         const mergedAnswers = { ...(d.savedAnswers || {}) };
@@ -410,6 +441,8 @@ export const useCBTExamStore = create<CBTExamState>((set, get) => ({
           studentNIS: userObj?.siswaProfile?.nisn || userObj?.username || "-",
           studentClass: userObj?.siswaProfile?.kelas?.nama || userObj?.kelas || "-",
           isSubmitted: Boolean(d.isSubmitted),
+          autoSubmitTriggered: false,
+          submitError: null,
           scoreResult: d.score ?? null,
           isLocked: Boolean(d.isLocked),
           violations: d.violations ?? 0,

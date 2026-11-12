@@ -71,8 +71,8 @@ export default function HomePage() {
           throw new Error("Akun siswa tidak memiliki hak akses Guru/Admin.");
         }
 
-        localStorage.setItem("cbt_token", res.data.token);
-        localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
+        localStorage.setItem("cbt_admin_token", res.data.token);
+        localStorage.setItem("cbt_admin_user", JSON.stringify(res.data.user));
         router.push("/admin");
       } else {
         // Peserta Siswa: Nama Lengkap (persis DB), Kelas, Jurusan, Token Ujian
@@ -113,8 +113,8 @@ export default function HomePage() {
           throw new Error(res.message || "Gagal memverifikasi peserta ujian");
         }
 
-        localStorage.setItem("cbt_token", res.data.token);
-        localStorage.setItem("cbt_user", JSON.stringify(res.data.user));
+        localStorage.setItem("cbt_student_token", res.data.token);
+        localStorage.setItem("cbt_student_user", JSON.stringify(res.data.user));
 
         const examStart = await startExamWithToken(
           tokenInput.trim().toUpperCase(),

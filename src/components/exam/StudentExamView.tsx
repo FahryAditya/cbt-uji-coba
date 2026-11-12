@@ -44,6 +44,8 @@ export default function StudentExamView() {
     isLocked,
     checkLockStatus,
     isSubmitted,
+    submitError,
+    clearSubmitError,
     scoreResult,
     examKkm,
     submitExam,
@@ -580,6 +582,56 @@ export default function StudentExamView() {
         </div>
       )}
 
+      {/* Modal Error Gagal Submit */}
+      {submitError && !isSubmitted && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">
+                  Gagal Mengumpulkan Ujian
+                </h3>
+                <p className="text-xs text-rose-700 mt-1 leading-relaxed font-semibold">
+                  {submitError}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  clearSubmitError();
+                  localStorage.removeItem("cbt_active_sesi");
+                  localStorage.removeItem("cbt_active_ujian");
+                  localStorage.removeItem("cbt_active_token");
+                  localStorage.removeItem("cbt_student_token");
+                  localStorage.removeItem("cbt_student_user");
+                  router.push("/");
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition"
+              >
+                Kembali ke Login
+              </button>
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  clearSubmitError();
+                  await submitExam();
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold text-xs transition"
+              >
+                {isLoading ? "Mengirim..." : "Coba Kirim Lagi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Sukses Selesai Ujian */}
       {isSubmitted && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
@@ -611,6 +663,7 @@ export default function StudentExamView() {
             <button
               onClick={() => {
                 localStorage.removeItem("cbt_active_sesi");
+                localStorage.removeItem("cbt_active_ujian");
                 localStorage.removeItem("cbt_active_token");
                 router.push("/");
               }}
