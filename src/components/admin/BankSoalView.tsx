@@ -38,16 +38,21 @@ export default function BankSoalView() {
   const {
     questions,
     bankSoalList,
+    exams,
     activeBankSoalId,
     setActiveBankSoalId,
     createBankFolder,
     renameBankFolder,
     deleteBankFolder,
+    deleteInactiveExam,
+    deleteAllInactiveExams,
     addQuestion,
     updateQuestion,
     deleteQuestion,
     showToast,
   } = useCBTAdminStore();
+
+  const inactiveExamCount = exams.filter((e) => e.status !== "AKTIF").length;
 
   const [viewMode, setViewMode] = useState<ViewMode>("folders");
   const [builderTab, setBuilderTab] = useState<BuilderTab>("manual");
@@ -306,14 +311,33 @@ export default function BankSoalView() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowNewFolderForm(!showNewFolderForm)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-sm"
-            >
-              <FolderPlus className="w-4 h-4" />
-              <span>{showNewFolderForm ? "Tutup Form Folder" : "+ Buat Folder Baru"}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {inactiveExamCount > 0 && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = window.confirm(
+                      `Hapus permanen semua ${inactiveExamCount} sesi ujian nonaktif (SELESAI/DRAFT)? Folder & butir soal tetap aman.`
+                    );
+                    if (!ok) return;
+                    await deleteAllInactiveExams();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus Sesi Nonaktif ({inactiveExamCount})</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowNewFolderForm(!showNewFolderForm)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-sm"
+              >
+                <FolderPlus className="w-4 h-4" />
+                <span>{showNewFolderForm ? "Tutup Form Folder" : "+ Buat Folder Baru"}</span>
+              </button>
+            </div>
           </div>
 
           {/* Form Buat Folder Kustom */}
@@ -490,6 +514,43 @@ export default function BankSoalView() {
                           </span>
                         )}
                       </div>
+
+                      {/* Daftar sesi nonaktif (SELESAI/DRAFT) terkait folder ini */}
+                      {folder.usedInExams?.some((u) => u.status !== "AKTIF") && (
+                        <div
+                          className="space-y-1 pt-1"
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => e.stopPropagation()}
+                        >
+                          {folder.usedInExams
+                            .filter((u) => u.status !== "AKTIF")
+                            .map((inactiveEx) => (
+                              <div
+                                key={inactiveEx.id}
+                                className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg bg-slate-100/90 border border-slate-200 text-[10px]"
+                              >
+                                <span className="truncate text-slate-600 font-semibold">
+                                  [{inactiveEx.status}] {inactiveEx.judul}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const ok = window.confirm(
+                                      `Hapus sesi ujian nonaktif "${inactiveEx.judul}" (${inactiveEx.status})? Folder & soal tetap tersimpan.`
+                                    );
+                                    if (!ok) return;
+                                    await deleteInactiveExam(inactiveEx.id);
+                                  }}
+                                  title="Hapus sesi ujian yang sudah dinonaktifkan"
+                                  className="text-rose-600 hover:text-rose-700 font-bold inline-flex items-center gap-0.5 shrink-0"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Hapus</span>
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
 
                     <div
@@ -597,6 +658,25 @@ export default function BankSoalView() {
                 >
                   <StopCircle className="w-4 h-4" />
                   <span>Akhiri Sesi</span>
+                </button>
+              )}
+
+              {activeFolder?.usedInExams?.some((u) => u.status !== "AKTIF") && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const count =
+                      activeFolder.usedInExams?.filter((u) => u.status !== "AKTIF").length || 0;
+                    const ok = window.confirm(
+                      `Hapus ${count} sesi ujian nonaktif (SELESAI/DRAFT) di folder "${activeFolder.judul}"? Soal di folder ini tetap aman.`
+                    );
+                    if (!ok) return;
+                    await deleteAllInactiveExams(activeFolder.id);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus Sesi Nonaktif</span>
                 </button>
               )}
 

@@ -159,6 +159,8 @@ interface CBTAdminState {
     autoRotateToken: boolean;
   }) => Promise<boolean>;
   finishExamSession: (ujianId: string) => Promise<boolean>;
+  deleteInactiveExam: (ujianId: string) => Promise<boolean>;
+  deleteAllInactiveExams: (bankSoalId?: string) => Promise<boolean>;
   updateExamSettings: (
     ujianId: string,
     settings: { kkm?: number; tampilkanNilai?: boolean; batasPelanggaran?: number }
@@ -674,6 +676,61 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       return true;
     } catch (err: any) {
       get().showToast(err?.message || "Gagal mengakhiri sesi ujian.", "error");
+      return false;
+    }
+  },
+
+  deleteInactiveExam: async (ujianId: string) => {
+    try {
+      const res = await apiRequest<{ success: boolean; message?: string }>(
+        `/api/ujian/${ujianId}`,
+        { method: "DELETE" }
+      );
+      if (get().activeExamId === ujianId) {
+        set({ activeExamId: "", activeExamTitle: "", activeToken: "" });
+      }
+      await Promise.all([
+        get().fetchExams(),
+        get().fetchBankSoal(),
+        get().fetchProctoring(),
+      ]);
+      get().showToast(
+        res.message || "Sesi ujian nonaktif berhasil dihapus.",
+        "success"
+      );
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menghapus sesi ujian nonaktif.", "error");
+      return false;
+    }
+  },
+
+  deleteAllInactiveExams: async (bankSoalId?: string) => {
+    try {
+      const query = bankSoalId ? `?bankSoalId=${encodeURIComponent(bankSoalId)}` : "";
+      const res = await apiRequest<{
+        success: boolean;
+        deletedCount?: number;
+        message?: string;
+      }>(`/api/ujian/inactive/all${query}`, { method: "DELETE" });
+
+      const currentActive = get().exams.find((e) => e.id === get().activeExamId);
+      if (currentActive && currentActive.status !== "AKTIF") {
+        set({ activeExamId: "", activeExamTitle: "", activeToken: "" });
+      }
+
+      await Promise.all([
+        get().fetchExams(),
+        get().fetchBankSoal(),
+        get().fetchProctoring(),
+      ]);
+      get().showToast(
+        res.message || "Seluruh sesi ujian nonaktif berhasil dihapus.",
+        "success"
+      );
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menghapus sesi ujian nonaktif.", "error");
       return false;
     }
   },

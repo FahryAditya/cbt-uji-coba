@@ -13,6 +13,7 @@ import {
   Loader2,
   Clock,
   Users,
+  Trash2,
 } from "lucide-react";
 
 interface StartExamModalProps {
@@ -28,6 +29,7 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
     addNewClass,
     createExam,
     startExamWithBankFolder,
+    deleteInactiveExam,
     showToast,
   } = useCBTAdminStore();
 
@@ -260,15 +262,39 @@ export default function StartExamModal({ folder, onClose }: StartExamModalProps)
                             )}
                           </div>
                         </div>
-                        <span
-                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
-                            ex.status === "AKTIF"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {ex.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                              ex.status === "AKTIF"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {ex.status}
+                          </span>
+                          {ex.status !== "AKTIF" && (
+                            <button
+                              type="button"
+                              onClick={async (ev) => {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const ok = window.confirm(
+                                  `Hapus sesi ujian nonaktif "${ex.title}" (${ex.status})?`
+                                );
+                                if (!ok) return;
+                                const deleted = await deleteInactiveExam(ex.id);
+                                if (deleted && selectedExamId === ex.id) {
+                                  const remaining = exams.filter((item) => item.id !== ex.id);
+                                  setSelectedExamId(remaining[0]?.id || "");
+                                }
+                              }}
+                              title="Hapus sesi ujian yang sudah dinonaktifkan"
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </label>
                     );
                   })}
