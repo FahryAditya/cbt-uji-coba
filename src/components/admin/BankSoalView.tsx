@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Loader2,
   StopCircle,
+  Download,
+  Paperclip,
 } from "lucide-react";
 import ImportWordPanel from "./ImportWordPanel";
 import StartExamModal from "./StartExamModal";
@@ -34,9 +36,16 @@ import EndExamModal from "./EndExamModal";
 type ViewMode = "folders" | "folder-files" | "builder";
 type BuilderTab = "manual" | "word";
 
+function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 KB";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export default function BankSoalView() {
   const {
     questions,
+    softfiles,
     bankSoalList,
     exams,
     activeBankSoalId,
@@ -44,6 +53,8 @@ export default function BankSoalView() {
     createBankFolder,
     renameBankFolder,
     deleteBankFolder,
+    uploadBankSoalFile,
+    deleteBankSoalFile,
     deleteInactiveExam,
     deleteAllInactiveExams,
     addQuestion,
@@ -51,6 +62,9 @@ export default function BankSoalView() {
     deleteQuestion,
     showToast,
   } = useCBTAdminStore();
+
+  const softfileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingSoftfile, setIsUploadingSoftfile] = useState(false);
 
   const inactiveExamCount = exams.filter((e) => e.status !== "AKTIF").length;
 
@@ -698,6 +712,114 @@ export default function BankSoalView() {
                 <span>Start Ujian</span>
               </button>
             </div>
+          </div>
+
+          {/* Arsip Softfile Soal (PDF / Word di Cloudinary) */}
+          <div className="soft-card p-4 sm:p-5 space-y-3 border border-slate-200/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-start gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                  <Paperclip className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">
+                    Arsip Softfile Soal (PDF / Word)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Simpan naskah asli soal (.pdf, .doc, .docx) ke Cloudinary sebagai arsip folder ini (maks. 7 MB).
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <input
+                  ref={softfileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !activeBankSoalId) return;
+                    setIsUploadingSoftfile(true);
+                    await uploadBankSoalFile(activeBankSoalId, file);
+                    setIsUploadingSoftfile(false);
+                    if (softfileInputRef.current) softfileInputRef.current.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingSoftfile || !activeBankSoalId}
+                  onClick={() => softfileInputRef.current?.click()}
+                  className="min-h-[38px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-bold text-xs transition shadow-sm"
+                >
+                  {isUploadingSoftfile ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileUp className="w-4 h-4" />
+                  )}
+                  <span>{isUploadingSoftfile ? "Mengunggah..." : "Simpan Softfile PDF / Word"}</span>
+                </button>
+              </div>
+            </div>
+
+            {softfiles.length === 0 ? (
+              <div className="text-xs text-slate-400 py-2">
+                Belum ada softfile PDF atau Word tersimpan di folder ini.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {softfiles.map((sf) => (
+                  <div
+                    key={sf.id}
+                    className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200/80"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-extrabold shrink-0 ${
+                          sf.format === "PDF"
+                            ? "bg-rose-100 text-rose-700 border border-rose-200"
+                            : "bg-indigo-100 text-indigo-700 border border-indigo-200"
+                        }`}
+                      >
+                        {sf.format}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 truncate" title={sf.namaFile}>
+                          {sf.namaFile}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {formatFileSize(sf.ukuranByte)} •{" "}
+                          {new Date(sf.createdAt).toLocaleDateString("id-ID")}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a
+                        href={sf.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Buka / Unduh Softfile"
+                        className="min-h-[34px] min-w-[34px] flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-sky-600 hover:border-sky-300 transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = window.confirm(`Hapus softfile "${sf.namaFile}" dari arsip?`);
+                          if (ok) await deleteBankSoalFile(sf.id);
+                        }}
+                        title="Hapus Softfile"
+                        className="min-h-[34px] min-w-[34px] flex items-center justify-center p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Daftar File Soal */}

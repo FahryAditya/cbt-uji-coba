@@ -40,6 +40,7 @@ export interface BankFolderItem {
   deskripsi?: string | null;
   mapel: string;
   totalSoal: number;
+  totalSoftfiles?: number;
   usedInExams?: {
     id: string;
     judul: string;
@@ -47,6 +48,18 @@ export interface BankFolderItem {
     token?: string | null;
   }[];
   createdAt?: string;
+}
+
+export interface BankSoalSoftfile {
+  id: string;
+  bankSoalId: string;
+  namaFile: string;
+  format: "PDF" | "WORD" | string;
+  mimeType: string;
+  ukuranByte: number;
+  cloudinaryId: string;
+  fileUrl: string;
+  createdAt: string;
 }
 
 export interface ExamPackage {
@@ -126,6 +139,10 @@ interface CBTAdminState {
   ) => Promise<string | null>;
   renameBankFolder: (id: string, judul: string) => Promise<boolean>;
   deleteBankFolder: (id: string) => Promise<boolean>;
+  softfiles: BankSoalSoftfile[];
+  fetchBankSoalFiles: (bankSoalId?: string) => Promise<void>;
+  uploadBankSoalFile: (bankSoalId: string, file: File) => Promise<boolean>;
+  deleteBankSoalFile: (fileId: string) => Promise<boolean>;
   addQuestion: (q: Omit<QuestionItem, "id" | "number">) => Promise<boolean>;
   importQuestionsBulk: (
     bankSoalId: string,
@@ -421,11 +438,13 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   },
 
   questions: [],
+  softfiles: [],
   bankSoalList: [],
   activeBankSoalId: "",
   setActiveBankSoalId: (id: string) => {
     set({ activeBankSoalId: id });
     get().fetchQuestions(id);
+    get().fetchBankSoalFiles(id);
   },
 
   createBankFolder: async (judul, mapelNama = "Pendidikan Pancasila", deskripsi = "") => {
@@ -928,6 +947,79 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       }
     } catch (err: any) {
       console.warn("Gagal fetch questions:", err?.message || err);
+    }
+  },
+
+  fetchBankSoalFiles: async (bankSoalId?: string) => {
+    const targetId = bankSoalId || get().activeBankSoalId;
+    if (!targetId) return;
+    try {
+      const res = await apiRequest<{ success: boolean; data: BankSoalSoftfile[] }>(
+        `/api/bank-soal/${targetId}/files`
+      );
+      if (Array.isArray(res.data)) {
+        set({ softfiles: res.data });
+      }
+    } catch (err: any) {
+      console.warn("Gagal fetch softfiles:", err?.message || err);
+    }
+  },
+
+  uploadBankSoalFile: async (bankSoalId: string, file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    if (!["pdf", "doc", "docx"].includes(ext)) {
+      get().showToast("Hanya mendukung file PDF (.pdf) atau Word (.doc, .docx).", "error");
+      return false;
+    }
+    if (file.size > 7 * 1024 * 1024) {
+      get().showToast("Ukuran file maksimal 7 MB.", "error");
+      return false;
+    }
+    try {
+      const base64DataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Gagal membaca file."));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await apiRequest<{
+        success: boolean;
+        message?: string;
+        data?: BankSoalSoftfile;
+      }>(`/api/bank-soal/${bankSoalId}/files`, {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          fileBase64: base64DataUrl,
+        }),
+      });
+
+      await Promise.all([get().fetchBankSoalFiles(bankSoalId), get().fetchBankSoal()]);
+      get().showToast(
+        res.message || `Softfile "${file.name}" berhasil disimpan ke Cloudinary!`,
+        "success"
+      );
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal mengunggah softfile ke Cloudinary.", "error");
+      return false;
+    }
+  },
+
+  deleteBankSoalFile: async (fileId: string) => {
+    try {
+      await apiRequest(`/api/bank-soal/files/${fileId}`, { method: "DELETE" });
+      set((state) => ({
+        softfiles: state.softfiles.filter((f) => f.id !== fileId),
+      }));
+      await get().fetchBankSoal();
+      get().showToast("Softfile berhasil dihapus.", "success");
+      return true;
+    } catch (err: any) {
+      get().showToast(err?.message || "Gagal menghapus softfile.", "error");
+      return false;
     }
   },
 }));
