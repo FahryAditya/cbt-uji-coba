@@ -201,6 +201,7 @@ interface CBTAdminState {
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 let inFlightFetchAll: Promise<void> | null = null;
+let inFlightFetchExams: Promise<void> | null = null;
 
 export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   toast: null,
@@ -226,7 +227,10 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
       activeExamId: id,
       activeExamTitle: exam ? exam.title : "",
       activeToken: exam ? exam.token : "",
-      tokenSecondsRemaining: exam?.tokenSecondsRemaining ?? 600,
+      tokenSecondsRemaining:
+        exam?.autoRotateToken && typeof exam.tokenSecondsRemaining === "number"
+          ? exam.tokenSecondsRemaining
+          : 0,
     });
     if (exam) {
       get().showToast(`Menampilkan ujian: ${exam.title}`, "info");
@@ -235,13 +239,25 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   },
 
   activeToken: "",
-  tokenSecondsRemaining: 600,
+  tokenSecondsRemaining: 0,
   decrementTokenTimer: () => {
-    const current = get().tokenSecondsRemaining;
-    if (current <= 1) {
+    const { activeExamId, exams, tokenSecondsRemaining } = get();
+    const currentExam = exams.find((e) => e.id === activeExamId);
+
+    // Jika ujian aktif tidak menggunakan rotasi token otomatis, pastikan timer tetap 0 dan jangan fetch
+    if (!currentExam?.autoRotateToken) {
+      if (tokenSecondsRemaining !== 0) {
+        set({ tokenSecondsRemaining: 0 });
+      }
+      return;
+    }
+
+    if (tokenSecondsRemaining <= 1) {
+      // Cooldown sementara 15 detik untuk mencegah spam request berulang dalam 1 detik saat fetch berjalan
+      set({ tokenSecondsRemaining: 15 });
       get().fetchExams();
     } else {
-      set({ tokenSecondsRemaining: current - 1 });
+      set({ tokenSecondsRemaining: tokenSecondsRemaining - 1 });
     }
   },
   regenerateToken: async () => {
@@ -839,60 +855,77 @@ export const useCBTAdminStore = create<CBTAdminState>((set, get) => ({
   },
 
   fetchExams: async () => {
-    try {
-      const res = await apiRequest<{ success: boolean; data: any[] }>("/api/ujian");
-      if (res.data) {
-        const formatted: ExamPackage[] = res.data.map((e) => ({
-          id: e.id,
-          title: e.title || e.judul || "Ujian",
-          subject: e.subject || e.mapel?.nama || "Umum",
-          targetClasses:
-            e.targetClasses ||
-            e.targetKelas?.map((k: any) => k.kelas?.nama) ||
-            [],
-          token: e.token || "",
-          tokenSecondsRemaining: e.tokenSecondsRemaining ?? 600,
-          tokenExpiresAt: e.tokenExpiresAt,
-          durationMinutes: e.durationMinutes ?? e.durasiMenit ?? 60,
-          totalQuestions:
-            e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
-          bankSoalId: e.bankSoalId,
-          bankSoalJudul: e.bankSoalJudul,
-          autoRotateToken: e.autoRotateToken,
-          status: e.status || "AKTIF",
-          kkm: e.kkm ?? 75,
-          batasPelanggaran: e.batasPelanggaran ?? 3,
-          tampilkanNilai: e.tampilkanNilai ?? true,
-        }));
-        set({ exams: formatted });
+    if (inFlightFetchExams) {
+      return inFlightFetchExams;
+    }
+    inFlightFetchExams = (async () => {
+      try {
+        const res = await apiRequest<{ success: boolean; data: any[] }>("/api/ujian");
+        if (res.data) {
+          const formatted: ExamPackage[] = res.data.map((e) => ({
+            id: e.id,
+            title: e.title || e.judul || "Ujian",
+            subject: e.subject || e.mapel?.nama || "Umum",
+            targetClasses:
+              e.targetClasses ||
+              e.targetKelas?.map((k: any) => k.kelas?.nama) ||
+              [],
+            token: e.token || "",
+            tokenSecondsRemaining:
+              e.autoRotateToken && typeof e.tokenSecondsRemaining === "number"
+                ? e.tokenSecondsRemaining
+                : 0,
+            tokenExpiresAt: e.tokenExpiresAt,
+            durationMinutes: e.durationMinutes ?? e.durasiMenit ?? 60,
+            totalQuestions:
+              e.totalQuestions ?? e.bankSoal?.soalList?.length ?? 0,
+            bankSoalId: e.bankSoalId,
+            bankSoalJudul: e.bankSoalJudul,
+            autoRotateToken: Boolean(e.autoRotateToken),
+            status: e.status || "AKTIF",
+            kkm: e.kkm ?? 75,
+            batasPelanggaran: e.batasPelanggaran ?? 3,
+            tampilkanNilai: e.tampilkanNilai ?? true,
+          }));
+          set({ exams: formatted });
 
-        // Set default active exam if none selected, or sync active token & timer
-        const currentActiveId = get().activeExamId;
-        if (!currentActiveId && formatted.length > 0) {
-          const first = formatted[0];
-          set({
-            activeExamId: first.id,
-            activeExamTitle: first.title,
-            activeToken: first.token,
-            tokenSecondsRemaining: first.tokenSecondsRemaining ?? 600,
-          });
-          if (res.data[0]?.bankSoalId) {
-            set({ activeBankSoalId: res.data[0].bankSoalId });
-            get().fetchQuestions(res.data[0].bankSoalId);
-          }
-        } else if (currentActiveId) {
-          const active = formatted.find((f) => f.id === currentActiveId);
-          if (active) {
+          // Set default active exam if none selected, or sync active token & timer
+          const currentActiveId = get().activeExamId;
+          if (!currentActiveId && formatted.length > 0) {
+            const first = formatted[0];
             set({
-              activeToken: active.token,
-              tokenSecondsRemaining: active.tokenSecondsRemaining ?? 600,
+              activeExamId: first.id,
+              activeExamTitle: first.title,
+              activeToken: first.token,
+              tokenSecondsRemaining:
+                first.autoRotateToken && typeof first.tokenSecondsRemaining === "number"
+                  ? first.tokenSecondsRemaining
+                  : 0,
             });
+            if (res.data[0]?.bankSoalId) {
+              set({ activeBankSoalId: res.data[0].bankSoalId });
+              get().fetchQuestions(res.data[0].bankSoalId);
+            }
+          } else if (currentActiveId) {
+            const active = formatted.find((f) => f.id === currentActiveId);
+            if (active) {
+              set({
+                activeToken: active.token,
+                tokenSecondsRemaining:
+                  active.autoRotateToken && typeof active.tokenSecondsRemaining === "number"
+                    ? active.tokenSecondsRemaining
+                    : 0,
+              });
+            }
           }
         }
+      } catch (err: any) {
+        console.warn("Gagal fetch exams:", err?.message || err);
+      } finally {
+        inFlightFetchExams = null;
       }
-    } catch (err: any) {
-      console.warn("Gagal fetch exams:", err?.message || err);
-    }
+    })();
+    return inFlightFetchExams;
   },
 
   fetchClasses: async () => {

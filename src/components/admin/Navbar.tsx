@@ -21,14 +21,17 @@ export default function Navbar({ onOpenBroadcast, onOpenMenu }: NavbarProps) {
     showToast,
   } = useCBTAdminStore();
 
-  // Countdown rotasi token otomatis tiap 10 menit
+  const currentExam = exams.find((ex) => ex.id === activeExamId);
+  const isAutoRotate = Boolean(currentExam?.autoRotateToken);
+
+  // Countdown rotasi token otomatis tiap 10 menit (HANYA dijalankan jika autoRotateToken aktif)
   useEffect(() => {
-    if (!activeExamId) return;
+    if (!activeExamId || !isAutoRotate) return;
     const timer = setInterval(() => {
       decrementTokenTimer();
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeExamId, decrementTokenTimer]);
+  }, [activeExamId, isAutoRotate, decrementTokenTimer]);
 
   const formatCountdown = (secs: number) => {
     const m = String(Math.floor(secs / 60)).padStart(2, "0");
@@ -89,17 +92,26 @@ export default function Navbar({ onOpenBroadcast, onOpenMenu }: NavbarProps) {
           <span className="font-mono font-extrabold text-xs sm:text-sm text-sky-600 tracking-wider">
             {activeToken || "-"}
           </span>
-          <span
-            title="Token berubah otomatis setiap 10 menit"
-            className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold ${
-              tokenSecondsRemaining <= 60
-                ? "bg-amber-100 text-amber-700 animate-pulse"
-                : "bg-sky-100 text-sky-700"
-            }`}
-          >
-            <Clock className="w-3 h-3" />
-            {formatCountdown(tokenSecondsRemaining)}
-          </span>
+          {isAutoRotate ? (
+            <span
+              title="Token berubah otomatis setiap 10 menit"
+              className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold ${
+                tokenSecondsRemaining <= 60
+                  ? "bg-amber-100 text-amber-700 animate-pulse"
+                  : "bg-sky-100 text-sky-700"
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              {formatCountdown(tokenSecondsRemaining)}
+            </span>
+          ) : (
+            <span
+              title="Token tetap (statis) tidak berganti otomatis"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-500"
+            >
+              Statis
+            </span>
+          )}
           <button
             onClick={handleCopy}
             title="Salin Token"
